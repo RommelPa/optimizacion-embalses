@@ -8,6 +8,7 @@ export function formatDateTime(value: string): string {
   return new Intl.DateTimeFormat("es-PE", {
     dateStyle: "short",
     timeStyle: "medium",
+    timeZone: "America/Lima",
   }).format(date);
 }
 

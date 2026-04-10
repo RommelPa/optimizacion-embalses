@@ -1,4 +1,5 @@
 from app.integrations.pso.engine.optimizer import ejecutar_optimizacion_pso
+from app.integrations.pso.engine.simulation import calcular_volumenes_con_caudales
 
 
 def run_pso_engine(
@@ -40,12 +41,33 @@ def run_pso_engine(
         max_iter=max_iter,
     )
 
+    q_opt = resultado["q_opt"]
+
+    v_cincel, v_campanario, q_ch4, q_ch6 = calcular_volumenes_con_caudales(
+        q_salida_cincel=q_opt,
+        horas=horas,
+        v_cincel_inicio=v_cincel_inicio,
+        v_campanario_inicio=v_campanario_inicio,
+        q_cincel=q_cincel,
+        q_salida_campanario=q_salida_campanario,
+    )
+
+    potencia_ch4 = rendimiento_ch4 * q_ch4
+    potencia_ch6 = rendimiento_ch6 * q_ch6
+    ingreso = 0.5 * (potencia_ch4 + potencia_ch6) * costo_marginal
+
     return {
         "engine": "pso",
         "status": "success",
         "best_cost": resultado["best_cost"],
         "q_opt": resultado["q_opt"],
         "execution_time_sec": resultado["execution_time_sec"],
+        "v_cincel": v_cincel,
+        "v_campanario": v_campanario,
+        "cmg": costo_marginal,
+        "potencia_ch4": potencia_ch4,
+        "potencia_ch6": potencia_ch6,
+        "ingreso": ingreso,
         "n_particles": resultado["n_particles"],
         "max_iter": resultado["max_iter"],
         "cost_history": resultado["cost_history"],

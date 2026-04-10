@@ -21,3 +21,9 @@ class PSOWrapperOutput(BaseModel):
     best_cost: float
     execution_time_sec: float
     q_opt: list[float]
+    v_cincel: list[float]
+    v_campanario: list[float]
+    cmg: list[float]
+    potencia_ch4: list[float]
+    potencia_ch6: list[float]
+    ingreso: list[float]

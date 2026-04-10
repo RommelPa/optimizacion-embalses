@@ -44,6 +44,12 @@ def ejecutar_corrida_pso(payload: PSOWrapperInput) -> PSOWrapperOutput:
             best_cost=resultado["best_cost"],
             execution_time_sec=resultado["execution_time_sec"],
             q_opt=[float(x) for x in resultado["q_opt"]],
+            v_cincel=[float(x) for x in resultado["v_cincel"]],
+            v_campanario=[float(x) for x in resultado["v_campanario"]],
+            cmg=[float(x) for x in resultado["cmg"]],
+            potencia_ch4=[float(x) for x in resultado["potencia_ch4"]],
+            potencia_ch6=[float(x) for x in resultado["potencia_ch6"]],
+            ingreso=[float(x) for x in resultado["ingreso"]],
         )
 
     except PSOValidationError:

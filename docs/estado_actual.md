@@ -1,45 +1,114 @@
 # Estado actual del proyecto
 
-## Resumen
-El proyecto ya cuenta con frontend y backend funcionales, integración del motor PSO, persistencia de corridas, historial, detalle y filtros básicos.
+## Decisión vigente
 
-## Funcionalidades operativas actuales
-- Crear corrida manual
-- Crear corrida con Excel local
-- Ejecutar motor PSO
-- Persistir corridas exitosas y fallidas
-- Consultar historial
-- Consultar detalle por corrida
-- Filtrar historial por:
-  - origen_datos
-  - estado
-  - id
-  - fecha_proceso
+La aplicación principal del proyecto es ahora una aplicación de escritorio en PySide6.
 
-## Backend
-- FastAPI
-- SQLite local por defecto
-- PostgreSQL funcionando con Docker Compose
-- Endpoints principales disponibles en `/api/v1`
+El backend mantiene:
+- la lógica de aplicación
+- el acceso a base de datos
+- la integración con el motor PSO
+- la exportación a Excel
 
-## Frontend
-- Next.js
-- navegación básica entre:
-  - inicio
-  - corridas
-  - historial
-  - detalle
+La API FastAPI queda como interfaz secundaria y opcional, no como flujo principal del producto.
 
-## Integración PSO
-- wrapper separado
-- mapper de entrada
-- lector Excel
-- contrato de entrada formal
-- motor modularizado por capas
+---
 
-## Limitaciones actuales
-- no hay upload real de archivos
-- no hay autenticación
-- no hay migraciones
-- frontend no dockerizado
-- no hay ejecución asíncrona
+## Flujo principal actual
+
+1. El usuario crea una corrida desde la aplicación de escritorio.
+2. La aplicación de escritorio invoca localmente la capa de aplicación.
+3. La capa de aplicación ejecuta el wrapper PSO.
+4. Se persiste la corrida en SQLite.
+5. El usuario consulta historial, detalle y exportación Excel desde escritorio.
+
+---
+
+## Funcionalidad validada
+
+### Corridas
+- creación de corrida manual
+- creación de corrida desde Excel local
+- persistencia de corridas
+- manejo de errores de validación
+- manejo de errores de ejecución
+
+### Consulta
+- historial de corridas
+- detalle de corrida
+- visualización de datos clave
+- exportación Excel legacy
+
+### Motor
+- lectura desde Excel
+- construcción del contrato del motor
+- ejecución PSO
+- almacenamiento de resultados
+- generación de gráficos para exportación Excel
+
+---
+
+## Base de datos
+
+Base actual:
+- SQLite local
+
+Ubicación actual:
+- `backend/corridas.db`
+
+---
+
+## Interfaz principal actual
+
+Aplicación de escritorio:
+- PySide6
+
+Módulos activos:
+- nueva corrida
+- historial
+- detalle
+- exportación Excel
+
+---
+
+## Arquitectura vigente
+
+### Backend
+- `app/application`: casos de uso y orquestación
+- `app/repositories`: acceso a persistencia
+- `app/integrations/pso`: motor y lectura de entradas
+- `app/models`: modelos ORM
+- `app/db`: sesión y configuración de base de datos
+- `app/api`: interfaz HTTP opcional
+
+### Escritorio
+- `desktop_app/ui`: pantallas PySide6
+- `desktop_app/services`: integración local con capa de aplicación
+
+---
+
+## Alcance actual
+
+Soportado:
+- origen manual
+- origen Excel local
+- exportación Excel
+
+No implementado aún:
+- ingreso manual detallado en pantalla
+- scraping web
+- alertas automáticas
+- autenticación
+- roles
+- procesamiento asíncrono
+- despliegue institucional
+
+---
+
+## Próximas líneas de trabajo
+
+1. limpieza técnica del repositorio
+2. consolidación de la arquitectura escritorio + backend local
+3. preparación del ingreso manual en pantalla
+4. diseño del módulo futuro de scraping
+5. endurecimiento de validaciones y empaquetado

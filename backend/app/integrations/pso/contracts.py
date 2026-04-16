@@ -27,3 +27,5 @@ class PSOWrapperOutput(BaseModel):
     potencia_ch4: list[float]
     potencia_ch6: list[float]
     ingreso: list[float]
+    q_salida_campanario: float
+    p_char_5: list[float]

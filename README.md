@@ -1,192 +1,107 @@
 # Optimizacion Embalses
 
-Aplicación web para ejecutar y consultar corridas de optimización de embalses, con backend en FastAPI, frontend en Next.js e integración progresiva de motor PSO.
+Aplicación de escritorio para ejecutar, consultar y exportar corridas de optimización de embalses, usando PySide6 como interfaz, SQLite como persistencia local y un motor PSO integrado en Python.
 
 ## Estado actual
 
-### Ya implementado
-- Frontend web con navegación básica
-- Backend FastAPI
-- Endpoint healthcheck
-- Creación de corridas
-- Integración del motor PSO
-- Flujo manual y flujo Excel
-- Validaciones y manejo de errores
-- Persistencia de corridas
+### Producto principal
+- Aplicación de escritorio en PySide6
+- Ejecución local sin consumir HTTP
+- Persistencia local en SQLite
+- Flujo de entrada manual
+- Flujo de entrada desde Excel
+- Exportación de resultados a Excel
 - Historial de corridas
 - Detalle por corrida
-- Filtros en historial
-- Resumen simple en historial
-- Soporte local con SQLite
-- Soporte backend + PostgreSQL con Docker Compose
+- Integración operativa del motor PSO
 
-### Flujos soportados
-- `manual`
-- `excel` mediante ruta local de archivo
+### Soporte técnico disponible
+- Backend FastAPI conservado como capa de soporte y diagnóstico
+- Endpoint healthcheck
+- Endpoints de corridas disponibles, pero ya no son el flujo principal de la aplicación
 
-### Persistencia actual
-- SQLite local por defecto
-- PostgreSQL al ejecutar backend con Docker Compose
+## Arquitectura actual
+
+### Flujo principal
+- `desktop_app/`: interfaz PySide6
+- `backend/app/application/`: lógica de aplicación
+- `backend/app/repositories/`: acceso a persistencia
+- `backend/app/integrations/pso/`: motor PSO, lectura Excel y contratos
+- `backend/corridas.db`: base SQLite local
+
+### Flujo secundario
+- `backend/app/api/`: API FastAPI conservada como soporte técnico, no como canal principal
 
 ## Estructura del proyecto
 
-- `backend/`: API FastAPI, persistencia, integración PSO
-- `frontend/`: aplicación Next.js
-- `data_samples/`: archivos locales de muestra para pruebas
-- `docker-compose.yml`: backend + PostgreSQL
-- `.env.example`: variables de entorno de ejemplo
+- `backend/`: lógica, persistencia, motor PSO, exportación Excel, soporte API
+- `desktop_app/`: aplicación de escritorio PySide6
+- `data_samples/`: archivos Excel de muestra para pruebas
+- `docker-compose.yml`: infraestructura heredada de soporte para backend
+- `.env.example`: variables de entorno de referencia
 
 ## Requisitos locales
 
-### Backend
+### Entorno principal
 - Python 3.11
 - entorno virtual
 - dependencias en `backend/requirements.txt`
 
-### Frontend
-- Node.js
-- npm
+## Base de datos local
 
-### Docker
-- Docker Desktop
-- virtualización habilitada
-
-## Variables de entorno
-
-### Frontend
-Archivo:
+La base activa en desarrollo local es:
 
 ```text
-frontend/.env.local
+backend/corridas.db
 ```
 
-Contenido mínimo
-```text
-NEXT_PUBLIC_API_URL=http://localhost:8000
-```
+## Ejecución local
 
-### Docker/PostgreSQL
-Archivo en la raíz del proyecto
-```text
-.env
-```
+1. Crear entorno e instalar dependencias
 
-Contenido base
-```text
-POSTGRES_DB=optimizacion_embalses
-POSTGRES_USER=optimizacion_user
-POSTGRES_PASSWORD=optimizacion_pass
-DATABASE_URL=postgresql+psycopg://optimizacion_user:optimizacion_pass@db:5432/optimizacion_embalses
-NEXT_PUBLIC_API_URL=http://localhost:8000
-```
-### Ejecución local sin Docker
-Backend
 ```bash
 cd backend
 python -m venv .venv
 .venv\Scripts\activate
 pip install -r requirements.txt
-uvicorn app.main:app --reload
 ```
 
-Frontend
-```bash
-cd frontend
-npm install
-npm run dev
-```
+2. Ejecutar aplicación de escritorio
 
-Base usada en modo local
-- SQLite local por defecto
-- Archivo: 
-```text
-backend/corridas.db
-```
-
-### Ejecución con Docker (backend + PostgreSQL)
-- Docker Desktop corriendo
-- Archivo .env en la raíz del proyecto
+Desde la raíz del proyecto:
 
 ```bash
-docker compose up --build
+backend\.venv\Scripts\python.exe desktop_app/app.py
 ```
 
-Servicios levantados
-```text
-PostgreSQL en localhost:5432
-Backend en localhost:8000
-```
+## Flujos soportados
+- manual
+- excel mediante ruta local de archivo
 
-Nota importante
-- En esta etapa, el frontend sigue ejecutándose localmente fuera de Docker.
+## Validación funcional recomendada
+- Crear corrida manual
+- Crear corrida Excel
+- Revisar historial
+- Abrir detalle de corrida
+- Exportar resultado a Excel
+- Probar caso fallido con archivo inexistente
+- Estado del motor PSO
+- El motor PSO está integrado y operativo
+- La aplicación ejecuta simulación, reparación, función objetivo, optimización y lectura desde Excel
+- La salida operativa actual replica el flujo de Excel usado por el proceso legado
+- La exportación principal vigente es Excel
 
-Validación mínima después de levantar
-Backend
-Probar:
-```text
-GET /api/v1/health
-GET /api/v1/corridas
-POST /api/v1/corridas
-```
-Swagger:
-```text
-http://localhost:8000/docs
-```
-
-Frontend
-Abrir:
-```text
-http://localhost:3000/
-http://localhost:3000/corridas
-http://localhost:3000/historial
-```
-
-Flujo recomendado de validación
-1. Crear corrida manual
-2. Crear corrida excel
-3. Revisar historial
-4. Abrir detalle de corrida
-5. Probar caso fallido con archivo inexistente
-
-Endpoints principales backend
-```text
-GET /api/v1/health
-POST /api/v1/corridas
-GET /api/v1/corridas
-GET /api/v1/corridas/{id}
-```
-
-Rutas principales frontend
-```text
-/
-/corridas
-/historial
-/historial/[id]
-```
-Estado actual del motor PSO
-- El núcleo del motor PSO está integrado y operativo dentro del backend.
-- La aplicación ya ejecuta simulación, reparación, función objetivo, optimización y lectura base desde Excel.
-- El motor puede ejecutarse desde la API y sus resultados se muestran en frontend.
-- La generación de gráficos y la exportación Excel del script original aún no han sido integradas al flujo web.
-- Actualmente el sistema usa el PSO como motor de cálculo y ejecución, no como réplica completa 1:1 de toda la salida del script legacy.
-
-Limitaciones actuales
-- No hay upload real de archivos todavía
-- El flujo Excel usa ruta local temporal
-- El frontend no está dockerizado
+## Limitaciones actuales
+- No hay scraping implementado todavía
+- No hay ingreso manual avanzado en pantalla todavía
 - No hay autenticación
 - No hay roles operador/ingeniero
 - No hay migraciones de base de datos
 - No hay procesamiento asíncrono de corridas largas
-- Trabajo recomendado siguiente
-- Cerrar handoff/documentación técnica de esta fase
-- Evaluar migraciones de base de datos
-- Definir si el siguiente paso será Docker completo o funcionalidad de producto
-- Preparar despliegue on-prem
-
-Trabajo recomendado siguiente
-- Cerrar handoff y documentación técnica de esta fase
-- Evaluar migraciones de base de datos
-- Definir si el siguiente bloque será infraestructura o funcionalidad operativa
-- Preparar despliegue on-prem
-- Definir si la salida legacy (gráficos y Excel) se replicará como exportación o se migrará progresivamente a visualización web
+- FastAPI ya no es el flujo principal del producto
+- Siguiente dirección del proyecto
+- Limpieza técnica controlada del repositorio
+- Mantener escritorio como producto principal
+- Preparar integración futura para scraping
+- Incorporar más adelante captura manual en pantalla
+- Mantener la API solo como soporte mientras siga siendo útil

@@ -5,6 +5,7 @@ import pyswarms as ps
 from app.integrations.pso.engine.objective import funcion_objetivo_unificada
 from app.integrations.pso.engine.repair import reparar_solucion_inteligente
 
+np.random.seed(42)
 
 def construir_posiciones_iniciales(
     horas: int,
@@ -45,8 +46,8 @@ def ejecutar_optimizacion_pso(
     rendimiento_ch4: float,
     rendimiento_ch6: float,
     costo_marginal: np.ndarray,
-    n_particles: int = 30,
-    max_iter: int = 20,
+    n_particles: int = 150,
+    max_iter: int = 150,
 ):
     init_pos = construir_posiciones_iniciales(
         horas=horas,
@@ -60,6 +61,7 @@ def ejecutar_optimizacion_pso(
         "c1": 2.0,
         "c2": 2.0,
         "w": 0.9,
+        "v_max": 1.5,
     }
 
     optimizador = ps.single.GlobalBestPSO(

@@ -1,11 +1,3 @@
-from app.integrations.pso.contracts import PSOWrapperInput
-from app.integrations.pso.engine_input_contract import (
-    ConfiguracionPSOInput,
-    EngineInputContract,
-    RestriccionesInput,
-    SeriesInput,
-)
-from app.integrations.pso.excel_reader import build_engine_input_from_excel
 from app.integrations.pso.config import (
     DEFAULT_MAX_ITER,
     DEFAULT_N_PARTICLES,
@@ -20,6 +12,15 @@ from app.integrations.pso.config import (
     V_CINCEL_MAX,
     V_CINCEL_MIN,
 )
+from app.integrations.pso.contracts import PSOWrapperInput
+from app.integrations.pso.engine_input_contract import (
+    ConfiguracionPSOInput,
+    EngineInputContract,
+    RestriccionesInput,
+    SeriesInput,
+)
+from app.integrations.pso.excel_reader import build_engine_input_from_excel
+
 
 def build_engine_input_from_wrapper(payload: PSOWrapperInput) -> EngineInputContract:
     """
@@ -45,8 +46,12 @@ def build_engine_input_from_wrapper(payload: PSOWrapperInput) -> EngineInputCont
 
     horas = 4
 
+    q_cincel = [10.0] * horas
+    p_char_5 = [round(q * 5.98, 4) for q in q_cincel]
+
     series = SeriesInput(
-        q_cincel=[10.0] * horas,
+        q_cincel=q_cincel,
+        p_char_5=p_char_5,
         costo_marginal=[100.0] * horas,
     )
 

@@ -5,9 +5,10 @@ from pydantic import BaseModel, Field, field_validator
 
 class SeriesInput(BaseModel):
     q_cincel: list[float]
+    p_char_5: list[float]
     costo_marginal: list[float]
 
-    @field_validator("q_cincel", "costo_marginal")
+    @field_validator("q_cincel", "p_char_5", "costo_marginal")
     @classmethod
     def validar_series_no_vacias(cls, value: list[float]) -> list[float]:
         if not value:
@@ -62,12 +63,17 @@ class EngineInputContract(BaseModel):
 
     @field_validator("configuracion_pso")
     @classmethod
-    def validar_configuracion(cls, value: ConfiguracionPSOInput) -> ConfiguracionPSOInput:
+    def validar_configuracion(
+        cls, value: ConfiguracionPSOInput
+    ) -> ConfiguracionPSOInput:
         return value
 
     @field_validator("series")
     @classmethod
     def validar_longitudes_series(cls, value: SeriesInput) -> SeriesInput:
-        if len(value.q_cincel) != len(value.costo_marginal):
-            raise ValueError("q_cincel y costo_marginal deben tener la misma longitud")
+        n = len(value.q_cincel)
+        if len(value.p_char_5) != n or len(value.costo_marginal) != n:
+            raise ValueError(
+                "q_cincel, p_char_5 y costo_marginal deben tener la misma longitud"
+            )
         return value

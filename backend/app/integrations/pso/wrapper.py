@@ -18,6 +18,7 @@ def ejecutar_corrida_pso(payload: PSOWrapperInput) -> PSOWrapperOutput:
             ),
             q_cincel=np.array(engine_input.series.q_cincel, dtype=np.float64),
             q_salida_campanario=engine_input.restricciones.q_salida_campanario,
+            p_char_5=np.array(engine_input.series.p_char_5, dtype=np.float64),
             v_cincel_inicio=engine_input.restricciones.v_cincel_inicio,
             v_campanario_inicio=engine_input.restricciones.v_campanario_inicio,
             v_cincel_final=engine_input.restricciones.v_cincel_final,
@@ -50,6 +51,8 @@ def ejecutar_corrida_pso(payload: PSOWrapperInput) -> PSOWrapperOutput:
             potencia_ch4=[float(x) for x in resultado["potencia_ch4"]],
             potencia_ch6=[float(x) for x in resultado["potencia_ch6"]],
             ingreso=[float(x) for x in resultado["ingreso"]],
+            q_salida_campanario=float(resultado["q_salida_campanario"]),
+            p_char_5=[float(x) for x in resultado["p_char_5"]],
         )
 
     except PSOValidationError:

@@ -2,14 +2,6 @@ from pathlib import Path
 
 import pandas as pd
 
-from app.integrations.pso.engine_input_contract import (
-    ConfiguracionPSOInput,
-    EngineInputContract,
-    RestriccionesInput,
-    SeriesInput,
-)
-from app.integrations.pso.errors import PSOValidationError
-
 from app.integrations.pso.config import (
     DEFAULT_MAX_ITER,
     DEFAULT_N_PARTICLES,
@@ -24,6 +16,14 @@ from app.integrations.pso.config import (
     V_CINCEL_MAX,
     V_CINCEL_MIN,
 )
+from app.integrations.pso.engine_input_contract import (
+    ConfiguracionPSOInput,
+    EngineInputContract,
+    RestriccionesInput,
+    SeriesInput,
+)
+from app.integrations.pso.errors import PSOValidationError
+
 
 def build_engine_input_from_excel(
     file_path: str | Path,
@@ -54,14 +54,14 @@ def build_engine_input_from_excel(
 
     try:
         costo_marginal = datos_excel["CMG"].values[:48].astype(float).tolist()
-        potencia_entrada = datos_excel["P_CHAR 5"].values[:48].astype(float)
-        q_cincel = (potencia_entrada / 5.98).astype(float).tolist()
+        p_char_5 = datos_excel["P_CHAR 5"].values[:48].astype(float).tolist()
+        q_cincel = (datos_excel["P_CHAR 5"].values[:48].astype(float) / 5.98).tolist()
     except Exception as exc:
         raise PSOValidationError(
             f"No se pudieron convertir las series CMG o P_CHAR 5: {exc}"
         ) from exc
 
-    if len(costo_marginal) < 48 or len(q_cincel) < 48:
+    if len(costo_marginal) < 48 or len(p_char_5) < 48 or len(q_cincel) < 48:
         raise PSOValidationError(
             "El archivo Excel no contiene al menos 48 registros válidos para CMG y P_CHAR 5"
         )
@@ -76,6 +76,7 @@ def build_engine_input_from_excel(
 
     series = SeriesInput(
         q_cincel=q_cincel,
+        p_char_5=p_char_5,
         costo_marginal=costo_marginal,
     )
 

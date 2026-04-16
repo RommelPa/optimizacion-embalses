@@ -1,26 +1,74 @@
+# =========================
 # Python
-backend/.venv/
-backend/__pycache__/
-backend/**/*.pyc
+# =========================
+__pycache__/
+*.py[cod]
+*$py.class
 
-# Node / Next
-frontend/node_modules/
-frontend/.next/
-frontend/out/
+# Entornos virtuales
+.venv/
+venv/
+env/
 
-# Environment
+# =========================
+# Variables de entorno
+# =========================
 .env
-.env.local
-.env.development
-.env.production
+.env.*
+!.env.example
 
-# Database
-backend/corridas.db
+# =========================
+# SQLite / storage local
+# =========================
+*.db
+*.sqlite
+*.sqlite3
 
-# OS / Editor
+# =========================
+# Logs
+# =========================
+*.log
+
+# =========================
+# Pytest / coverage / cache
+# =========================
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+
+# =========================
+# Build / packaging Python
+# =========================
+build/
+dist/
+*.egg-info/
+pip-wheel-metadata/
+
+# =========================
+# IDE / editor
+# =========================
+.vscode/
+.idea/
 .DS_Store
 Thumbs.db
-.vscode/
 
-# Docker
-postgres_data/
+# =========================
+# Node / frontend legado
+# =========================
+node_modules/
+.next/
+out/
+
+# =========================
+# Archivos temporales Excel / imágenes / exportaciones
+# =========================
+*.tmp
+*.bak
+~$*.xlsx
+~$*.xlsm
+~$*.xls
+exports/
+temp/

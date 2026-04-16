@@ -1,9 +1,13 @@
 import os
+from pathlib import Path
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./corridas.db")
+DEFAULT_SQLITE_PATH = Path(__file__).resolve().parents[2] / "corridas.db"
+DEFAULT_DATABASE_URL = f"sqlite:///{DEFAULT_SQLITE_PATH.as_posix()}"
+
+DATABASE_URL = os.getenv("DATABASE_URL", DEFAULT_DATABASE_URL)
 
 engine_kwargs = {}
 

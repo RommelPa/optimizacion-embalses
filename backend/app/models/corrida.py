@@ -16,7 +16,7 @@ class Corrida(Base):
         default=lambda: datetime.now(timezone.utc),
         index=True,
     )
-
+    caso_estudio: Mapped[str] = mapped_column(String, nullable=False, index=True)
     fecha_proceso: Mapped[str] = mapped_column(String, nullable=False)
     modo_operacion: Mapped[str] = mapped_column(String, nullable=False)
     escenario: Mapped[str] = mapped_column(String, nullable=False)
@@ -30,6 +30,8 @@ class Corrida(Base):
 
     best_cost: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
     execution_time_sec: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
+    q_salida_campanario: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
+
     q_opt_json: Mapped[str] = mapped_column(Text, nullable=False, default="[]")
     v_cincel_json: Mapped[str] = mapped_column(Text, nullable=False, default="[]")
     v_campanario_json: Mapped[str] = mapped_column(Text, nullable=False, default="[]")
@@ -37,6 +39,7 @@ class Corrida(Base):
     potencia_ch4_json: Mapped[str] = mapped_column(Text, nullable=False, default="[]")
     potencia_ch6_json: Mapped[str] = mapped_column(Text, nullable=False, default="[]")
     ingreso_json: Mapped[str] = mapped_column(Text, nullable=False, default="[]")
+    p_char_5_json: Mapped[str] = mapped_column(Text, nullable=False, default="[]")
 
     input_payload_json: Mapped[str] = mapped_column(Text, nullable=False, default="{}")
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)

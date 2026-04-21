@@ -1,0 +1,13 @@
+PySide6
+fastapi
+uvicorn
+pydantic
+SQLAlchemy
+numpy
+pandas
+scipy
+matplotlib
+openpyxl
+pillow
+pyswarms
+python-dotenv

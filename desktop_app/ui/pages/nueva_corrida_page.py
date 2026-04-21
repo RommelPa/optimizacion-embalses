@@ -2,9 +2,8 @@ from __future__ import annotations
 
 from collections.abc import Callable
 
-from PySide6.QtCore import QDate
+from PySide6.QtCore import QDate, QThread
 from PySide6.QtWidgets import (
-    QComboBox,
     QDateEdit,
     QFileDialog,
     QFormLayout,
@@ -19,15 +18,16 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from services.corrida_local_service import CorridaLocalService
+from workers.corrida_worker import CorridaWorker
 
 
 class NuevaCorridaPage(QWidget):
     def __init__(self) -> None:
         super().__init__()
-        self.service = CorridaLocalService()
         self.on_refresh_historial: Callable[[], None] | None = None
         self.on_open_detail: Callable[[str], None] | None = None
+        self.worker_thread: QThread | None = None
+        self.worker: CorridaWorker | None = None
         self._build_ui()
 
     def set_after_create_callbacks(
@@ -49,22 +49,21 @@ class NuevaCorridaPage(QWidget):
         form_layout = QFormLayout(form_group)
 
         self.caso_estudio_input = QLineEdit()
-        self.caso_estudio_input.setPlaceholderText("Ej. Base abril 2026 - excel legacy")
+        self.caso_estudio_input.setPlaceholderText("Ej. Base abril 2026 - validación manual")
 
-        self.modo_operacion_input = QComboBox()
-        self.modo_operacion_input.addItems(["inicial", "reprograma"])
+        self.modo_operacion_value = "inicial"
+        self.modo_operacion_label = QLabel("inicial")
 
         self.fecha_proceso_input = QDateEdit()
         self.fecha_proceso_input.setCalendarPopup(True)
         self.fecha_proceso_input.setDate(QDate.currentDate())
         self.fecha_proceso_input.setDisplayFormat("yyyy-MM-dd")
 
-        self.escenario_input = QComboBox()
-        self.escenario_input.addItems(["base"])
+        self.escenario_value = "base"
+        self.escenario_label = QLabel("base")
 
-        self.origen_datos_input = QComboBox()
-        self.origen_datos_input.addItems(["excel", "manual"])
-        self.origen_datos_input.currentTextChanged.connect(self._on_origen_changed)
+        self.origen_datos_value = "excel"
+        self.origen_datos_label = QLabel("excel")
 
         self.archivo_entrada_input = QLineEdit()
         self.archivo_entrada_input.setReadOnly(True)
@@ -80,11 +79,11 @@ class NuevaCorridaPage(QWidget):
         self.observaciones_input.setFixedHeight(100)
 
         form_layout.addRow("Caso de estudio", self.caso_estudio_input)
-        form_layout.addRow("Modo operación", self.modo_operacion_input)
-        form_layout.addRow("Fecha proceso", self.fecha_proceso_input)
-        form_layout.addRow("Escenario", self.escenario_input)
-        form_layout.addRow("Origen datos", self.origen_datos_input)
-        form_layout.addRow("Archivo entrada", archivo_layout)
+        form_layout.addRow("Modo de operación", self.modo_operacion_label)
+        form_layout.addRow("Fecha de proceso", self.fecha_proceso_input)
+        form_layout.addRow("Escenario", self.escenario_label)
+        form_layout.addRow("Origen de datos", self.origen_datos_label)
+        form_layout.addRow("Archivo de entrada", archivo_layout)
         form_layout.addRow("Observaciones", self.observaciones_input)
 
         layout.addWidget(form_group)
@@ -98,15 +97,16 @@ class NuevaCorridaPage(QWidget):
         layout.addWidget(self.resultado_label)
 
         layout.addStretch()
-        self._on_origen_changed(self.origen_datos_input.currentText())
+        self.archivo_entrada_input.setEnabled(True)
+        self.buscar_archivo_btn.setEnabled(True)
 
-    def _on_origen_changed(self, origen: str) -> None:
-        requiere_excel = origen == "excel"
-        self.archivo_entrada_input.setEnabled(requiere_excel)
-        self.buscar_archivo_btn.setEnabled(requiere_excel)
-
-        if not requiere_excel:
-            self.archivo_entrada_input.clear()
+    def _set_form_enabled(self, enabled: bool) -> None:
+        self.caso_estudio_input.setEnabled(enabled)
+        self.fecha_proceso_input.setEnabled(enabled)
+        self.observaciones_input.setEnabled(enabled)
+        self.archivo_entrada_input.setEnabled(enabled)
+        self.buscar_archivo_btn.setEnabled(enabled)
+        self.crear_btn.setEnabled(enabled)
 
     def _select_excel_file(self) -> None:
         filepath, _ = QFileDialog.getOpenFileName(
@@ -120,19 +120,23 @@ class NuevaCorridaPage(QWidget):
 
     def _clear_form(self) -> None:
         self.caso_estudio_input.clear()
-        self.modo_operacion_input.setCurrentText("inicial")
         self.fecha_proceso_input.setDate(QDate.currentDate())
-        self.escenario_input.setCurrentText("base")
-        self.origen_datos_input.setCurrentText("excel")
         self.archivo_entrada_input.clear()
         self.observaciones_input.clear()
 
     def _submit(self) -> None:
+        if self.worker_thread is not None and self.worker_thread.isRunning():
+            QMessageBox.warning(
+                self,
+                "Validación",
+                "Ya hay una corrida en ejecución.",
+            )
+            return
         caso_estudio = self.caso_estudio_input.text().strip()
-        modo_operacion = self.modo_operacion_input.currentText()
+        modo_operacion = self.modo_operacion_value
         fecha_proceso = self.fecha_proceso_input.date().toString("yyyy-MM-dd")
-        escenario = self.escenario_input.currentText()
-        origen_datos = self.origen_datos_input.currentText()
+        escenario = self.escenario_value
+        origen_datos = self.origen_datos_value
         archivo_entrada = self.archivo_entrada_input.text().strip() or None
         observaciones = self.observaciones_input.toPlainText().strip() or None
 
@@ -140,47 +144,105 @@ class NuevaCorridaPage(QWidget):
             QMessageBox.warning(self, "Validación", "Caso de estudio es obligatorio.")
             return
 
-        if origen_datos == "excel" and not archivo_entrada:
+        if not archivo_entrada:
             QMessageBox.warning(self, "Validación", "Debes seleccionar un archivo Excel.")
             return
 
-        if origen_datos == "manual":
-            archivo_entrada = None
+        self._set_form_enabled(False)
+        self.resultado_label.setText("Estado actual: ejecutando...\nEjecutando corrida...")
 
-        try:
-            result = self.service.crear_corrida(
-                caso_estudio=caso_estudio,
-                modo_operacion=modo_operacion,
-                fecha_proceso=fecha_proceso,
-                escenario=escenario,
-                origen_datos=origen_datos,
-                observaciones=observaciones,
-                archivo_entrada=archivo_entrada,
-            )
-            data = result.get("data", {})
-            corrida_id = data.get("id", "")
-            self.resultado_label.setText(
-                f"Corrida creada correctamente.\n"
-                f"ID: {corrida_id or '-'}\n"
-                f"Caso de estudio: {data.get('caso_estudio', '-')}\n"
-                f"Estado: {data.get('estado', '-')}"
-            )
+        parent_window = self.window()
+        set_status_message = getattr(parent_window, "set_status_message", None)
+        if callable(set_status_message):
+            set_status_message("Ejecutando corrida...", 0)
 
-            if self.on_refresh_historial:
-                self.on_refresh_historial()
+        self.worker_thread = QThread(self)
+        self.worker = CorridaWorker(
+            caso_estudio=caso_estudio,
+            modo_operacion=modo_operacion,
+            fecha_proceso=fecha_proceso,
+            escenario=escenario,
+            origen_datos=origen_datos,
+            observaciones=observaciones,
+            archivo_entrada=archivo_entrada,
+        )
+        self.worker.moveToThread(self.worker_thread)
 
-            self._clear_form()
+        self.worker_thread.started.connect(self.worker.run)
+        self.worker.finished.connect(self._on_corrida_success)
+        self.worker.error.connect(self._on_corrida_error)
 
-            msg = QMessageBox(self)
-            msg.setIcon(QMessageBox.Information)
-            msg.setWindowTitle("Éxito")
-            msg.setText("Corrida creada correctamente.")
-            abrir_btn = msg.addButton("Abrir detalle", QMessageBox.AcceptRole)
-            msg.addButton("Cerrar", QMessageBox.RejectRole)
-            msg.exec()
+        self.worker.finished.connect(self.worker_thread.quit)
+        self.worker.error.connect(self.worker_thread.quit)
 
-            if msg.clickedButton() == abrir_btn and corrida_id and self.on_open_detail:
-                self.on_open_detail(corrida_id)
+        self.worker_thread.finished.connect(self._cleanup_worker_thread)
 
-        except Exception as exc:
-            QMessageBox.critical(self, "Error", f"No se pudo crear la corrida:\n{exc}")
+        self.worker_thread.start()
+
+    def _on_corrida_success(self, result: dict) -> None:
+        parent_window = self.window()
+        set_status_message = getattr(parent_window, "set_status_message", None)
+
+        data = result.get("data", {})
+        corrida_id = data.get("id", "")
+
+        self.resultado_label.setText(
+            f"Corrida creada correctamente.\n"
+            f"ID: {corrida_id or '-'}\n"
+            f"Caso de estudio: {data.get('caso_estudio', '-')}\n"
+            f"Estado: {data.get('estado', '-')}\n"
+            f"Tiempo (s): {data.get('execution_time_sec', '-')}"
+        )
+
+        if callable(set_status_message):
+            set_status_message("Corrida creada correctamente")
+
+        if self.on_refresh_historial:
+            self.on_refresh_historial()
+
+        self._clear_form()
+        self._set_form_enabled(True)
+
+        msg = QMessageBox(self)
+        msg.setIcon(QMessageBox.Icon.Information)
+        msg.setWindowTitle("Éxito")
+        msg.setText("Corrida creada correctamente.")
+        abrir_btn = msg.addButton(
+            "Abrir detalle",
+            QMessageBox.ButtonRole.AcceptRole,
+        )
+        msg.addButton(
+            "Cerrar",
+            QMessageBox.ButtonRole.RejectRole,
+        )
+        msg.exec()
+
+        if msg.clickedButton() == abrir_btn and corrida_id and self.on_open_detail:
+            self.on_open_detail(corrida_id)
+
+    def _on_corrida_error(self, error_message: str) -> None:
+        parent_window = self.window()
+        set_status_message = getattr(parent_window, "set_status_message", None)
+
+        self.resultado_label.setText(
+            "Estado actual: error.\nLa corrida no pudo completarse."
+        )
+        self._set_form_enabled(True)
+
+        if callable(set_status_message):
+            set_status_message("Error al crear corrida", 6000)
+
+        QMessageBox.critical(
+            self,
+            "Error",
+            f"No se pudo crear la corrida:\n{error_message}",
+        )
+
+    def _cleanup_worker_thread(self) -> None:
+        if self.worker is not None:
+            self.worker.deleteLater()
+            self.worker = None
+
+        if self.worker_thread is not None:
+            self.worker_thread.deleteLater()
+            self.worker_thread = None

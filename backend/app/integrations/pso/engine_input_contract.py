@@ -1,6 +1,6 @@
 from typing import Literal
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 
 class SeriesInput(BaseModel):
@@ -35,6 +35,38 @@ class RestriccionesInput(BaseModel):
     rendimiento_ch4: float = 1.01
     rendimiento_ch6: float = 0.59
 
+    @model_validator(mode="after")
+    def validar_restricciones(self) -> "RestriccionesInput":
+        if self.q_salida_campanario <= 0:
+            raise ValueError("q_salida_campanario debe ser mayor a 0")
+
+        if self.q_rango_min >= self.q_rango_max:
+            raise ValueError("q_rango_min debe ser menor que q_rango_max")
+
+        if self.v_cincel_min >= self.v_cincel_max:
+            raise ValueError("v_cincel_min debe ser menor que v_cincel_max")
+
+        if self.v_campanario_min >= self.v_campanario_max:
+            raise ValueError("v_campanario_min debe ser menor que v_campanario_max")
+
+        if not (self.v_cincel_min <= self.v_cincel_inicio <= self.v_cincel_max):
+            raise ValueError("v_cincel_inicio está fuera de rango")
+
+        if not (self.v_cincel_min <= self.v_cincel_final <= self.v_cincel_max):
+            raise ValueError("v_cincel_final está fuera de rango")
+
+        if not (
+            self.v_campanario_min <= self.v_campanario_inicio <= self.v_campanario_max
+        ):
+            raise ValueError("v_campanario_inicio está fuera de rango")
+
+        if not (
+            self.v_campanario_min <= self.v_campanario_final <= self.v_campanario_max
+        ):
+            raise ValueError("v_campanario_final está fuera de rango")
+
+        return self
+
 
 class ConfiguracionPSOInput(BaseModel):
     n_particles: int = Field(default=10, ge=1)
@@ -61,13 +93,6 @@ class EngineInputContract(BaseModel):
             raise ValueError("fecha_proceso no puede estar vacia")
         return value
 
-    @field_validator("configuracion_pso")
-    @classmethod
-    def validar_configuracion(
-        cls, value: ConfiguracionPSOInput
-    ) -> ConfiguracionPSOInput:
-        return value
-
     @field_validator("series")
     @classmethod
     def validar_longitudes_series(cls, value: SeriesInput) -> SeriesInput:
@@ -77,3 +102,11 @@ class EngineInputContract(BaseModel):
                 "q_cincel, p_char_5 y costo_marginal deben tener la misma longitud"
             )
         return value
+
+    @model_validator(mode="after")
+    def validar_contrato_v1(self) -> "EngineInputContract":
+        if self.horas != 48:
+            raise ValueError(
+                f"La V1 requiere exactamente 48 periodos, se recibieron {self.horas}"
+            )
+        return self

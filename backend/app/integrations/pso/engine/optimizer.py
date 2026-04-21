@@ -60,7 +60,7 @@ def ejecutar_optimizacion_pso(
     options = {
         "c1": 2.0,
         "c2": 2.0,
-        "w": 0.9,
+        "w": 1.5,
         "v_max": 1.5,
     }
 

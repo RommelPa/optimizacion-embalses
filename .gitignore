@@ -15,7 +15,6 @@ env/
 # =========================
 .env
 .env.*
-!.env.example
 
 # =========================
 # SQLite / storage local
@@ -48,6 +47,13 @@ dist/
 pip-wheel-metadata/
 
 # =========================
+# Instaladores / empaquetado Windows
+# =========================
+*.exe
+*.msi
+*.spec
+
+# =========================
 # IDE / editor
 # =========================
 .vscode/
@@ -72,3 +78,19 @@ out/
 ~$*.xls
 exports/
 temp/
+
+# Base local y artefactos del proyecto
+backend/corridas.db
+desktop_app/report.log
+
+# Archivos Excel/resultados generados localmente
+Resultados_PSO_*.xlsx
+grafico_*.png
+
+# PySide / Qt / runtime local
+*.qmlc
+*.jsc
+*.pyo
+
+# Sistema / notebook
+.ipynb_checkpoints/

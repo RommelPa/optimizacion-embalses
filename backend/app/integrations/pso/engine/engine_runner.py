@@ -21,6 +21,10 @@ def run_pso_engine(
     costo_marginal,
     n_particles: int = 30,
     max_iter: int = 20,
+    c1: float = 2.0,
+    c2: float = 2.0,
+    w: float = 0.9,
+    v_max: float = 1.5,
 ):
     resultado = ejecutar_optimizacion_pso(
         horas=horas,
@@ -40,6 +44,10 @@ def run_pso_engine(
         costo_marginal=costo_marginal,
         n_particles=n_particles,
         max_iter=max_iter,
+        c1=c1,
+        c2=c2,
+        w=w,
+        v_max=v_max,
     )
 
     q_opt = resultado["q_opt"]

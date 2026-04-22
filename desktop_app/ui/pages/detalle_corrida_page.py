@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 from PySide6.QtCore import Qt
@@ -20,7 +21,7 @@ from PySide6.QtWidgets import (
 )
 
 from services.corrida_local_service import CorridaLocalService
-import json
+
 
 class DetalleCorridaPage(QWidget):
     def __init__(self) -> None:
@@ -53,19 +54,22 @@ class DetalleCorridaPage(QWidget):
 
         subtitle = QLabel(
             "Revise la corrida seleccionada, sus métricas principales, "
-            "el mensaje del modelo y el payload de entrada."
+            "la configuración usada, el mensaje del modelo y el payload de entrada."
         )
         subtitle.setObjectName("PageSubtitle")
         subtitle.setWordWrap(True)
         main_layout.addWidget(subtitle)
 
         main_layout.addLayout(self._build_top_summary_layout())
+        main_layout.addWidget(self._build_configuracion_group())
         main_layout.addWidget(self._build_mensaje_group())
         main_layout.addWidget(self._build_error_group())
         main_layout.addWidget(self._build_payload_group())
+
         font = self.payload_text.font()
         font.setFamily("Consolas")
         self.payload_text.setFont(font)
+
         main_layout.addLayout(self._build_actions())
         main_layout.addStretch()
 
@@ -144,6 +148,75 @@ class DetalleCorridaPage(QWidget):
 
         return layout
 
+    def _build_configuracion_group(self) -> QGroupBox:
+        self.config_group = QGroupBox("Configuración usada")
+        layout = QGridLayout(self.config_group)
+        layout.setHorizontalSpacing(24)
+        layout.setVerticalSpacing(16)
+
+        self.cfg_algoritmo_group = QGroupBox("PSO")
+        self.cfg_algoritmo_form = QFormLayout(self.cfg_algoritmo_group)
+        self.cfg_algoritmo_form.setHorizontalSpacing(20)
+        self.cfg_algoritmo_form.setVerticalSpacing(10)
+
+        self.cfg_c1_label = self._create_value_label()
+        self.cfg_c2_label = self._create_value_label()
+        self.cfg_w_label = self._create_value_label()
+        self.cfg_v_max_label = self._create_value_label()
+        self.cfg_n_particles_label = self._create_value_label()
+        self.cfg_max_iter_label = self._create_value_label()
+
+        self.cfg_algoritmo_form.addRow("c1", self.cfg_c1_label)
+        self.cfg_algoritmo_form.addRow("c2", self.cfg_c2_label)
+        self.cfg_algoritmo_form.addRow("w", self.cfg_w_label)
+        self.cfg_algoritmo_form.addRow("v_max", self.cfg_v_max_label)
+        self.cfg_algoritmo_form.addRow("N partículas", self.cfg_n_particles_label)
+        self.cfg_algoritmo_form.addRow("Max iter", self.cfg_max_iter_label)
+
+        self.cfg_modelo_group = QGroupBox("Modelo")
+        self.cfg_modelo_form = QFormLayout(self.cfg_modelo_group)
+        self.cfg_modelo_form.setHorizontalSpacing(20)
+        self.cfg_modelo_form.setVerticalSpacing(10)
+
+        self.cfg_rend_ch4_label = self._create_value_label()
+        self.cfg_rend_ch6_label = self._create_value_label()
+        self.cfg_v_inicio_label = self._create_value_label()
+        self.cfg_v_final_label = self._create_value_label()
+
+        self.cfg_modelo_form.addRow("Rendimiento CH4", self.cfg_rend_ch4_label)
+        self.cfg_modelo_form.addRow("Rendimiento CH6", self.cfg_rend_ch6_label)
+        self.cfg_modelo_form.addRow("Factor volumen inicial", self.cfg_v_inicio_label)
+        self.cfg_modelo_form.addRow("Factor volumen final", self.cfg_v_final_label)
+
+        self.cfg_restricciones_group = QGroupBox("Restricciones")
+        self.cfg_restricciones_form = QFormLayout(self.cfg_restricciones_group)
+        self.cfg_restricciones_form.setHorizontalSpacing(20)
+        self.cfg_restricciones_form.setVerticalSpacing(10)
+
+        self.cfg_v_cincel_max_label = self._create_value_label()
+        self.cfg_v_cincel_min_label = self._create_value_label()
+        self.cfg_v_camp_max_label = self._create_value_label()
+        self.cfg_v_camp_min_label = self._create_value_label()
+        self.cfg_q_min_label = self._create_value_label()
+        self.cfg_q_max_label = self._create_value_label()
+
+        self.cfg_restricciones_form.addRow("V Cincel max", self.cfg_v_cincel_max_label)
+        self.cfg_restricciones_form.addRow("V Cincel min", self.cfg_v_cincel_min_label)
+        self.cfg_restricciones_form.addRow("V Campanario max", self.cfg_v_camp_max_label)
+        self.cfg_restricciones_form.addRow("V Campanario min", self.cfg_v_camp_min_label)
+        self.cfg_restricciones_form.addRow("Q rango min", self.cfg_q_min_label)
+        self.cfg_restricciones_form.addRow("Q rango max", self.cfg_q_max_label)
+
+        layout.addWidget(self.cfg_algoritmo_group, 0, 0)
+        layout.addWidget(self.cfg_modelo_group, 0, 1)
+        layout.addWidget(self.cfg_restricciones_group, 0, 2)
+
+        layout.setColumnStretch(0, 1)
+        layout.setColumnStretch(1, 1)
+        layout.setColumnStretch(2, 1)
+
+        return self.config_group
+
     def _build_mensaje_group(self) -> QGroupBox:
         self.mensaje_group = QGroupBox("Mensaje del modelo")
         self.mensaje_layout = QVBoxLayout(self.mensaje_group)
@@ -218,6 +291,10 @@ class DetalleCorridaPage(QWidget):
         self.version_modelo_label.setText(detail.get("version_modelo", "-"))
         self.modo_ejecucion_label.setText(detail.get("modo_ejecucion", "-"))
         self.modo_operacion_label.setText(detail.get("modo_operacion", "-"))
+
+        configuracion_usada = detail.get("configuracion_usada", {}) or {}
+        self._load_configuracion_usada(configuracion_usada)
+
         raw_payload = detail.get("input_payload_json", "")
         self.payload_text.setPlainText(self._format_payload_json(raw_payload))
 
@@ -254,6 +331,26 @@ class DetalleCorridaPage(QWidget):
         else:
             self.error_label.setText("-")
             self.error_group.setVisible(False)
+
+    def _load_configuracion_usada(self, data: dict) -> None:
+        self.cfg_c1_label.setText(self._format_number(data.get("c1"), 4))
+        self.cfg_c2_label.setText(self._format_number(data.get("c2"), 4))
+        self.cfg_w_label.setText(self._format_number(data.get("w"), 4))
+        self.cfg_v_max_label.setText(self._format_number(data.get("v_max"), 4))
+        self.cfg_n_particles_label.setText(str(data.get("n_particles", "-")))
+        self.cfg_max_iter_label.setText(str(data.get("max_iter", "-")))
+
+        self.cfg_rend_ch4_label.setText(self._format_number(data.get("rendimiento_ch4"), 4))
+        self.cfg_rend_ch6_label.setText(self._format_number(data.get("rendimiento_ch6"), 4))
+        self.cfg_v_inicio_label.setText(self._format_number(data.get("v_inicio_factor"), 4))
+        self.cfg_v_final_label.setText(self._format_number(data.get("v_final_factor"), 4))
+
+        self.cfg_v_cincel_max_label.setText(self._format_number(data.get("v_cincel_max"), 2))
+        self.cfg_v_cincel_min_label.setText(self._format_number(data.get("v_cincel_min"), 2))
+        self.cfg_v_camp_max_label.setText(self._format_number(data.get("v_campanario_max"), 2))
+        self.cfg_v_camp_min_label.setText(self._format_number(data.get("v_campanario_min"), 2))
+        self.cfg_q_min_label.setText(self._format_number(data.get("q_rango_min"), 4))
+        self.cfg_q_max_label.setText(self._format_number(data.get("q_rango_max"), 4))
 
     def export_excel(self) -> None:
         if not self.current_corrida_id:
@@ -350,7 +447,7 @@ class DetalleCorridaPage(QWidget):
             return f"{float(value):,.{decimals}f}"
         except (ValueError, TypeError):
             return str(value)
-        
+
     def _format_payload_json(self, payload: str) -> str:
         if not payload.strip():
             return ""

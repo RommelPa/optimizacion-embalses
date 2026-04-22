@@ -2,7 +2,8 @@ from app.integrations.pso.contracts import PSOWrapperInput
 from app.integrations.pso.engine_input_contract import EngineInputContract
 from app.integrations.pso.errors import PSOValidationError
 from app.integrations.pso.excel_reader import build_engine_input_from_excel
-
+from app.application.configuracion_service import ConfiguracionService
+from app.db.session import SessionLocal
 
 def build_engine_input_from_wrapper(payload: PSOWrapperInput) -> EngineInputContract:
     """
@@ -28,8 +29,16 @@ def build_engine_input_from_wrapper(payload: PSOWrapperInput) -> EngineInputCont
             "archivo_entrada es obligatorio cuando origen_datos = 'excel'."
         )
 
+    db = SessionLocal()
+    try:
+        configuracion_service = ConfiguracionService(db)
+        configuracion = configuracion_service.obtener_configuracion()
+    finally:
+        db.close()
+
     return build_engine_input_from_excel(
         file_path=payload.archivo_entrada,
+        configuracion=configuracion,
         modo_operacion=payload.modo_operacion,
         fecha_proceso=payload.fecha_proceso,
         origen_datos=payload.origen_datos,

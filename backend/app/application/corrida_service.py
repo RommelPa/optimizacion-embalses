@@ -18,6 +18,7 @@ from app.models.corrida import Corrida
 from app.repositories.corrida_repository import CorridaRepository
 from app.application.utils import serialize_datetime_utc
 from app.application.excel_exporter import build_excel_corrida_legacy
+from app.application.configuracion_service import ConfiguracionService
 
 class CorridaService:
     def __init__(self, db: Session) -> None:
@@ -38,6 +39,8 @@ class CorridaService:
         )
 
         input_payload_json = json.dumps(payload.__dict__)
+        config_service = ConfiguracionService(self.db)
+        config_actual = config_service.obtener_configuracion()
 
         try:
             wrapper_result = ejecutar_corrida_pso(wrapper_input)
@@ -67,6 +70,22 @@ class CorridaService:
                 p_char_5_json=json.dumps(wrapper_result.p_char_5),
                 input_payload_json=input_payload_json,
                 error_message=None,
+                cfg_c1=config_actual["c1"],
+                cfg_c2=config_actual["c2"],
+                cfg_w=config_actual["w"],
+                cfg_v_max=config_actual["v_max"],
+                cfg_n_particles=config_actual["n_particles"],
+                cfg_max_iter=config_actual["max_iter"],
+                cfg_rendimiento_ch4=config_actual["rendimiento_ch4"],
+                cfg_rendimiento_ch6=config_actual["rendimiento_ch6"],
+                cfg_v_inicio_factor=config_actual["v_inicio_factor"],
+                cfg_v_final_factor=config_actual["v_final_factor"],
+                cfg_v_cincel_max=config_actual["v_cincel_max"],
+                cfg_v_cincel_min=config_actual["v_cincel_min"],
+                cfg_v_campanario_max=config_actual["v_campanario_max"],
+                cfg_v_campanario_min=config_actual["v_campanario_min"],
+                cfg_q_rango_min=config_actual["q_rango_min"],
+                cfg_q_rango_max=config_actual["q_rango_max"],
             )
             self.repo.add(corrida_db)
 
@@ -117,6 +136,22 @@ class CorridaService:
                 p_char_5_json="[]",
                 input_payload_json=input_payload_json,
                 error_message=str(exc),
+                cfg_c1=config_actual["c1"],
+                cfg_c2=config_actual["c2"],
+                cfg_w=config_actual["w"],
+                cfg_v_max=config_actual["v_max"],
+                cfg_n_particles=config_actual["n_particles"],
+                cfg_max_iter=config_actual["max_iter"],
+                cfg_rendimiento_ch4=config_actual["rendimiento_ch4"],
+                cfg_rendimiento_ch6=config_actual["rendimiento_ch6"],
+                cfg_v_inicio_factor=config_actual["v_inicio_factor"],
+                cfg_v_final_factor=config_actual["v_final_factor"],
+                cfg_v_cincel_max=config_actual["v_cincel_max"],
+                cfg_v_cincel_min=config_actual["v_cincel_min"],
+                cfg_v_campanario_max=config_actual["v_campanario_max"],
+                cfg_v_campanario_min=config_actual["v_campanario_min"],
+                cfg_q_rango_min=config_actual["q_rango_min"],
+                cfg_q_rango_max=config_actual["q_rango_max"],
             )
             self.repo.add(corrida_db)
             raise CorridaValidationAppError(str(exc)) from exc
@@ -147,6 +182,22 @@ class CorridaService:
                 p_char_5_json="[]",
                 input_payload_json=input_payload_json,
                 error_message=str(exc),
+                cfg_c1=config_actual["c1"],
+                cfg_c2=config_actual["c2"],
+                cfg_w=config_actual["w"],
+                cfg_v_max=config_actual["v_max"],
+                cfg_n_particles=config_actual["n_particles"],
+                cfg_max_iter=config_actual["max_iter"],
+                cfg_rendimiento_ch4=config_actual["rendimiento_ch4"],
+                cfg_rendimiento_ch6=config_actual["rendimiento_ch6"],
+                cfg_v_inicio_factor=config_actual["v_inicio_factor"],
+                cfg_v_final_factor=config_actual["v_final_factor"],
+                cfg_v_cincel_max=config_actual["v_cincel_max"],
+                cfg_v_cincel_min=config_actual["v_cincel_min"],
+                cfg_v_campanario_max=config_actual["v_campanario_max"],
+                cfg_v_campanario_min=config_actual["v_campanario_min"],
+                cfg_q_rango_min=config_actual["q_rango_min"],
+                cfg_q_rango_max=config_actual["q_rango_max"],
             )
             self.repo.add(corrida_db)
             raise CorridaExecutionAppError(str(exc)) from exc
@@ -220,6 +271,24 @@ class CorridaService:
             "p_char_5": json.loads(row.p_char_5_json),
             "input_payload_json": row.input_payload_json,
             "error_message": row.error_message,
+            "configuracion_usada": {
+                "c1": row.cfg_c1,
+                "c2": row.cfg_c2,
+                "w": row.cfg_w,
+                "v_max": row.cfg_v_max,
+                "n_particles": row.cfg_n_particles,
+                "max_iter": row.cfg_max_iter,
+                "rendimiento_ch4": row.cfg_rendimiento_ch4,
+                "rendimiento_ch6": row.cfg_rendimiento_ch6,
+                "v_inicio_factor": row.cfg_v_inicio_factor,
+                "v_final_factor": row.cfg_v_final_factor,
+                "v_cincel_max": row.cfg_v_cincel_max,
+                "v_cincel_min": row.cfg_v_cincel_min,
+                "v_campanario_max": row.cfg_v_campanario_max,
+                "v_campanario_min": row.cfg_v_campanario_min,
+                "q_rango_min": row.cfg_q_rango_min,
+                "q_rango_max": row.cfg_q_rango_max,
+            },
         }
     
     def exportar_corrida_excel(self, corrida_id: str) -> tuple[bytes, str]:

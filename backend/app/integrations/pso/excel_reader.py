@@ -2,20 +2,6 @@ from pathlib import Path
 
 import pandas as pd
 
-from app.integrations.pso.config import (
-    DEFAULT_MAX_ITER,
-    DEFAULT_N_PARTICLES,
-    DEFAULT_V_FINAL_FACTOR,
-    DEFAULT_V_INICIO_FACTOR,
-    Q_RANGO_MAX,
-    Q_RANGO_MIN,
-    RENDIMIENTO_CH4,
-    RENDIMIENTO_CH6,
-    V_CAMPANARIO_MAX,
-    V_CAMPANARIO_MIN,
-    V_CINCEL_MAX,
-    V_CINCEL_MIN,
-)
 from app.integrations.pso.engine_input_contract import (
     ConfiguracionPSOInput,
     EngineInputContract,
@@ -117,6 +103,7 @@ def _leer_q_salida_campanario(file_path: Path) -> float:
 
 def build_engine_input_from_excel(
     file_path: str | Path,
+    configuracion: dict,
     modo_operacion: str = "inicial",
     fecha_proceso: str = "2026-04-08",
     origen_datos: str = "excel",
@@ -143,25 +130,45 @@ def build_engine_input_from_excel(
         costo_marginal=costo_marginal,
     )
 
+    v_cincel_max = float(configuracion["v_cincel_max"])
+    v_cincel_min = float(configuracion["v_cincel_min"])
+    v_campanario_max = float(configuracion["v_campanario_max"])
+    v_campanario_min = float(configuracion["v_campanario_min"])
+    q_rango_min = float(configuracion["q_rango_min"])
+    q_rango_max = float(configuracion["q_rango_max"])
+
+    rendimiento_ch4 = float(configuracion["rendimiento_ch4"])
+    rendimiento_ch6 = float(configuracion["rendimiento_ch6"])
+
+    v_inicio_factor = float(configuracion["v_inicio_factor"])
+    v_final_factor = float(configuracion["v_final_factor"])
+
+    n_particles = int(configuracion["n_particles"])
+    max_iter = int(configuracion["max_iter"])
+
     restricciones = RestriccionesInput(
         q_salida_campanario=q_salida_campanario,
-        v_cincel_inicio=DEFAULT_V_INICIO_FACTOR * V_CINCEL_MAX,
-        v_campanario_inicio=DEFAULT_V_INICIO_FACTOR * V_CAMPANARIO_MAX,
-        v_cincel_final=DEFAULT_V_FINAL_FACTOR * V_CINCEL_MAX,
-        v_campanario_final=DEFAULT_V_FINAL_FACTOR * V_CAMPANARIO_MAX,
-        v_cincel_max=V_CINCEL_MAX,
-        v_cincel_min=V_CINCEL_MIN,
-        v_campanario_max=V_CAMPANARIO_MAX,
-        v_campanario_min=V_CAMPANARIO_MIN,
-        q_rango_min=Q_RANGO_MIN,
-        q_rango_max=Q_RANGO_MAX,
-        rendimiento_ch4=RENDIMIENTO_CH4,
-        rendimiento_ch6=RENDIMIENTO_CH6,
+        v_cincel_inicio=v_inicio_factor * v_cincel_max,
+        v_campanario_inicio=v_inicio_factor * v_campanario_max,
+        v_cincel_final=v_final_factor * v_cincel_max,
+        v_campanario_final=v_final_factor * v_campanario_max,
+        v_cincel_max=v_cincel_max,
+        v_cincel_min=v_cincel_min,
+        v_campanario_max=v_campanario_max,
+        v_campanario_min=v_campanario_min,
+        q_rango_min=q_rango_min,
+        q_rango_max=q_rango_max,
+        rendimiento_ch4=rendimiento_ch4,
+        rendimiento_ch6=rendimiento_ch6,
     )
 
     configuracion_pso = ConfiguracionPSOInput(
-        n_particles=DEFAULT_N_PARTICLES,
-        max_iter=DEFAULT_MAX_ITER,
+        n_particles=n_particles,
+        max_iter=max_iter,
+        c1=float(configuracion["c1"]),
+        c2=float(configuracion["c2"]),
+        w=float(configuracion["w"]),
+        v_max=float(configuracion["v_max"]),
     )
 
     try:

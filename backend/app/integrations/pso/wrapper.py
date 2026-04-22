@@ -9,6 +9,7 @@ from app.integrations.pso.input_mapper import build_engine_input_from_wrapper
 def ejecutar_corrida_pso(payload: PSOWrapperInput) -> PSOWrapperOutput:
     try:
         engine_input = build_engine_input_from_wrapper(payload)
+        print("CONFIG PSO:", engine_input.configuracion_pso)
 
         resultado = run_pso_engine(
             horas=engine_input.horas,
@@ -32,6 +33,10 @@ def ejecutar_corrida_pso(payload: PSOWrapperInput) -> PSOWrapperOutput:
             costo_marginal=np.array(engine_input.series.costo_marginal, dtype=np.float64),
             n_particles=engine_input.configuracion_pso.n_particles,
             max_iter=engine_input.configuracion_pso.max_iter,
+            c1=engine_input.configuracion_pso.c1,
+            c2=engine_input.configuracion_pso.c2,
+            w=engine_input.configuracion_pso.w,
+            v_max=engine_input.configuracion_pso.v_max,
         )
 
         return PSOWrapperOutput(

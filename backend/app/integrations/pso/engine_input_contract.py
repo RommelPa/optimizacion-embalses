@@ -71,6 +71,10 @@ class RestriccionesInput(BaseModel):
 class ConfiguracionPSOInput(BaseModel):
     n_particles: int = Field(default=10, ge=1)
     max_iter: int = Field(default=5, ge=1)
+    c1: float
+    c2: float
+    w: float
+    v_max: float
 
 
 class EngineInputContract(BaseModel):

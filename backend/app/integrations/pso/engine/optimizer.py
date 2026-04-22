@@ -1,4 +1,5 @@
 import time
+
 import numpy as np
 import pyswarms as ps
 
@@ -6,6 +7,7 @@ from app.integrations.pso.engine.objective import funcion_objetivo_unificada
 from app.integrations.pso.engine.repair import reparar_solucion_inteligente
 
 np.random.seed(42)
+
 
 def construir_posiciones_iniciales(
     horas: int,
@@ -48,7 +50,11 @@ def ejecutar_optimizacion_pso(
     costo_marginal: np.ndarray,
     n_particles: int = 150,
     max_iter: int = 150,
-):
+    c1: float = 2.0,
+    c2: float = 2.0,
+    w: float = 0.9,
+    v_max: float = 1.5,
+) -> dict:
     init_pos = construir_posiciones_iniciales(
         horas=horas,
         n_particles=n_particles,
@@ -58,11 +64,17 @@ def ejecutar_optimizacion_pso(
     )
 
     options = {
-        "c1": 2.0,
-        "c2": 2.0,
-        "w": 1.5,
-        "v_max": 1.5,
+        "c1": float(c1),
+        "c2": float(c2),
+        "w": float(w),
     }
+
+    print(
+        "PSO options reales:",
+        options,
+        "velocity_clamp=",
+        (-float(v_max), float(v_max)),
+    )
 
     optimizador = ps.single.GlobalBestPSO(
         n_particles=n_particles,
@@ -72,21 +84,23 @@ def ejecutar_optimizacion_pso(
             np.array([q_rango[0]] * horas, dtype=np.float64),
             np.array([q_rango[1]] * horas, dtype=np.float64),
         ),
+        velocity_clamp=(-float(v_max), float(v_max)),
         init_pos=init_pos,
     )
 
-    w_inicial = 0.9
-    w_final = 0.4
+    w_inicial = float(w)
+    w_final = max(0.3, float(w) * 0.5)
 
-    best_cost = None
-    best_pos = None
-    cost_history = []
+    best_cost: float | None = None
+    best_pos: np.ndarray | None = None
+    cost_history: list[float] = []
 
     tiempo_inicio = time.time()
 
     for iteracion in range(max_iter):
-        w_actual = w_final + (w_inicial - w_final) * (1 - iteracion / max_iter)
-        optimizador.options["w"] = np.float64(w_actual)
+        divisor = max(1, max_iter)
+        w_actual = w_final + (w_inicial - w_final) * (1 - iteracion / divisor)
+        optimizador.options["w"] = float(w_actual)
 
         try:
             cost, pos = optimizador.optimize(
@@ -111,10 +125,10 @@ def ejecutar_optimizacion_pso(
                 iters=1,
                 verbose=False,
             )
-            cost = np.float64(cost)
+            cost = float(cost)
             pos = np.asarray(pos, dtype=np.float64)
         except Exception as exc:
-            if best_pos is not None:
+            if best_pos is not None and best_cost is not None:
                 pos = best_pos.copy()
                 cost = best_cost
             else:
@@ -123,8 +137,11 @@ def ejecutar_optimizacion_pso(
         cost_history.append(float(cost))
 
         if best_cost is None or cost < best_cost:
-            best_cost = cost
+            best_cost = float(cost)
             best_pos = pos.copy()
+
+    if best_pos is None or best_cost is None:
+        raise RuntimeError("La optimización PSO no produjo una solución válida.")
 
     q_opt = reparar_solucion_inteligente(
         q_prop=best_pos,
@@ -150,4 +167,8 @@ def ejecutar_optimizacion_pso(
         "execution_time_sec": round(tiempo_total, 4),
         "n_particles": n_particles,
         "max_iter": max_iter,
+        "c1": float(c1),
+        "c2": float(c2),
+        "w": float(w),
+        "v_max": float(v_max),
     }

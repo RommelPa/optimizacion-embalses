@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 
-from sqlalchemy import DateTime, Float, String, Text
+from sqlalchemy import DateTime, Float, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
@@ -43,3 +43,22 @@ class Corrida(Base):
 
     input_payload_json: Mapped[str] = mapped_column(Text, nullable=False, default="{}")
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    cfg_c1: Mapped[float] = mapped_column(Float, nullable=False, default=2.0)
+    cfg_c2: Mapped[float] = mapped_column(Float, nullable=False, default=2.0)
+    cfg_w: Mapped[float] = mapped_column(Float, nullable=False, default=0.9)
+    cfg_v_max: Mapped[float] = mapped_column(Float, nullable=False, default=1.5)
+    cfg_n_particles: Mapped[int] = mapped_column(Integer, nullable=False, default=150)
+    cfg_max_iter: Mapped[int] = mapped_column(Integer, nullable=False, default=150)
+
+    cfg_rendimiento_ch4: Mapped[float] = mapped_column(Float, nullable=False, default=1.01)
+    cfg_rendimiento_ch6: Mapped[float] = mapped_column(Float, nullable=False, default=0.59)
+    cfg_v_inicio_factor: Mapped[float] = mapped_column(Float, nullable=False, default=0.85)
+    cfg_v_final_factor: Mapped[float] = mapped_column(Float, nullable=False, default=0.85)
+
+    cfg_v_cincel_max: Mapped[float] = mapped_column(Float, nullable=False, default=190000.0)
+    cfg_v_cincel_min: Mapped[float] = mapped_column(Float, nullable=False, default=20000.0)
+    cfg_v_campanario_max: Mapped[float] = mapped_column(Float, nullable=False, default=90000.0)
+    cfg_v_campanario_min: Mapped[float] = mapped_column(Float, nullable=False, default=20000.0)
+    cfg_q_rango_min: Mapped[float] = mapped_column(Float, nullable=False, default=6.0)
+    cfg_q_rango_max: Mapped[float] = mapped_column(Float, nullable=False, default=15.0)

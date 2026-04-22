@@ -24,8 +24,9 @@ from ui.pages.nueva_corrida_page import NuevaCorridaPage
 from ui.themes import get_dark_stylesheet, get_light_stylesheet
 
 class MainWindow(QMainWindow):
-    def __init__(self) -> None:
+    def __init__(self, user_session) -> None:
         super().__init__()
+        self.user_session = user_session
         self.setWindowTitle("Optimización Embalses - Escritorio")
         self.resize(1280, 800)
 
@@ -44,6 +45,10 @@ class MainWindow(QMainWindow):
 
         self.apply_dark_theme()
         self.show_nueva_corrida_page()
+        self.set_status_message(
+            f"Sesión iniciada: {self.user_session.username} ({self.user_session.rol})",
+            5000,
+        )
 
     def _build_actions(self) -> None:
         self.action_nueva_corrida = QAction("Nueva corrida", self)
@@ -182,7 +187,7 @@ class MainWindow(QMainWindow):
         self.nueva_corrida_page = NuevaCorridaPage()
         self.historial_page = HistorialPage(on_open_detail=self.open_detail_page)
         self.detalle_page = DetalleCorridaPage()
-        self.configuracion_page = ConfiguracionPage()
+        self.configuracion_page = ConfiguracionPage(self.user_session)
 
         self.stack.addWidget(self.nueva_corrida_page)
         self.stack.addWidget(self.historial_page)

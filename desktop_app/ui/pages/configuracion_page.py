@@ -17,11 +17,14 @@ from services.configuracion_local_service import ConfiguracionLocalService
 
 
 class ConfiguracionPage(QWidget):
-    def __init__(self) -> None:
+    def __init__(self, user_session) -> None:
         super().__init__()
+        self.user_session = user_session
         self.service = ConfiguracionLocalService()
+
         self._build_ui()
         self._load_configuracion()
+        self._apply_role_permissions()
 
     def _build_ui(self) -> None:
         root_layout = QVBoxLayout(self)
@@ -59,8 +62,8 @@ class ConfiguracionPage(QWidget):
         layout.addStretch()
 
     def _build_algoritmo_group(self) -> QGroupBox:
-        group = QGroupBox("Parámetros del algoritmo")
-        form = QFormLayout(group)
+        self.algoritmo_group = QGroupBox("Parámetros del algoritmo")
+        form = QFormLayout(self.algoritmo_group)
         form.setHorizontalSpacing(20)
         form.setVerticalSpacing(12)
         form.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.AllNonFixedFieldsGrow)
@@ -80,11 +83,11 @@ class ConfiguracionPage(QWidget):
         form.addRow("N partículas", self.n_particles_input)
         form.addRow("Max iter", self.max_iter_input)
 
-        return group
+        return self.algoritmo_group
 
     def _build_modelo_group(self) -> QGroupBox:
-        group = QGroupBox("Parámetros del modelo")
-        form = QFormLayout(group)
+        self.modelo_group = QGroupBox("Parámetros del modelo")
+        form = QFormLayout(self.modelo_group)
         form.setHorizontalSpacing(20)
         form.setVerticalSpacing(12)
         form.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.AllNonFixedFieldsGrow)
@@ -100,11 +103,11 @@ class ConfiguracionPage(QWidget):
         form.addRow("Factor volumen inicial", self.v_inicio_input)
         form.addRow("Factor volumen final", self.v_final_input)
 
-        return group
+        return self.modelo_group
 
     def _build_restricciones_group(self) -> QGroupBox:
-        group = QGroupBox("Restricciones operativas")
-        form = QFormLayout(group)
+        self.restricciones_group = QGroupBox("Restricciones operativas")
+        form = QFormLayout(self.restricciones_group)
         form.setHorizontalSpacing(20)
         form.setVerticalSpacing(12)
         form.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.AllNonFixedFieldsGrow)
@@ -124,7 +127,7 @@ class ConfiguracionPage(QWidget):
         form.addRow("Q rango min", self.q_rango_min_input)
         form.addRow("Q rango max", self.q_rango_max_input)
 
-        return group
+        return self.restricciones_group
 
     def _build_actions(self) -> QHBoxLayout:
         actions = QHBoxLayout()
@@ -141,6 +144,60 @@ class ConfiguracionPage(QWidget):
         actions.addWidget(self.save_btn)
 
         return actions
+
+    def _apply_role_permissions(self) -> None:
+        rol = getattr(self.user_session, "rol", "").strip().lower()
+
+        algoritmo_inputs = [
+            self.c1_input,
+            self.c2_input,
+            self.w_input,
+            self.vmax_input,
+            self.n_particles_input,
+            self.max_iter_input,
+        ]
+
+        modelo_inputs = [
+            self.rend_ch4_input,
+            self.rend_ch6_input,
+            self.v_inicio_input,
+            self.v_final_input,
+        ]
+
+        restricciones_inputs = [
+            self.v_cincel_max_input,
+            self.v_cincel_min_input,
+            self.v_camp_max_input,
+            self.v_camp_min_input,
+            self.q_rango_min_input,
+            self.q_rango_max_input,
+        ]
+
+        if rol == "ingeniero":
+            self._set_read_only(algoritmo_inputs, False)
+            self._set_read_only(modelo_inputs, False)
+            self._set_read_only(restricciones_inputs, False)
+            self.save_btn.setEnabled(True)
+            self.restore_btn.setEnabled(True)
+            return
+
+        if rol == "operador":
+            self._set_read_only(algoritmo_inputs, True)
+            self._set_read_only(modelo_inputs, True)
+            self._set_read_only(restricciones_inputs, False)
+            self.save_btn.setEnabled(True)
+            self.restore_btn.setEnabled(False)
+            return
+
+        self._set_read_only(algoritmo_inputs, True)
+        self._set_read_only(modelo_inputs, True)
+        self._set_read_only(restricciones_inputs, True)
+        self.save_btn.setEnabled(False)
+        self.restore_btn.setEnabled(False)
+
+    def _set_read_only(self, widgets: list[QLineEdit], read_only: bool) -> None:
+        for widget in widgets:
+            widget.setReadOnly(read_only)
 
     def _get_payload(self) -> dict:
         return {
@@ -161,6 +218,16 @@ class ConfiguracionPage(QWidget):
             "q_rango_min": self.q_rango_min_input.text().strip(),
             "q_rango_max": self.q_rango_max_input.text().strip(),
         }
+
+    def _get_operador_payload(self) -> dict:
+        data = self.service.obtener_configuracion()
+        data["v_cincel_max"] = self.v_cincel_max_input.text().strip()
+        data["v_cincel_min"] = self.v_cincel_min_input.text().strip()
+        data["v_campanario_max"] = self.v_camp_max_input.text().strip()
+        data["v_campanario_min"] = self.v_camp_min_input.text().strip()
+        data["q_rango_min"] = self.q_rango_min_input.text().strip()
+        data["q_rango_max"] = self.q_rango_max_input.text().strip()
+        return data
 
     def _set_payload(self, data: dict) -> None:
         self.c1_input.setText(str(data.get("c1", "")))
@@ -195,7 +262,15 @@ class ConfiguracionPage(QWidget):
 
     def _save_configuracion(self) -> None:
         try:
-            payload = self._get_payload()
+            rol = getattr(self.user_session, "rol", "").strip().lower()
+
+            if rol == "ingeniero":
+                payload = self._get_payload()
+            elif rol == "operador":
+                payload = self._get_operador_payload()
+            else:
+                raise ValueError("El rol actual no tiene permiso para guardar configuración.")
+
             saved = self.service.guardar_configuracion(payload)
             self._set_payload(saved)
 
@@ -217,6 +292,14 @@ class ConfiguracionPage(QWidget):
             )
 
     def _restore_defaults(self) -> None:
+        if getattr(self.user_session, "rol", "").strip().lower() != "ingeniero":
+            QMessageBox.warning(
+                self,
+                "Permisos",
+                "Solo el ingeniero puede restaurar valores por defecto.",
+            )
+            return
+
         reply = QMessageBox.question(
             self,
             "Confirmar restauración",

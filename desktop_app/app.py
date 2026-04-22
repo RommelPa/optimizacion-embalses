@@ -11,13 +11,19 @@ from PySide6.QtWidgets import QApplication
 
 from app.db.init_db import init_db
 from main_window import MainWindow
+from ui.login_window import LoginWindow
 
 
 def main() -> None:
     init_db()
 
     app = QApplication(sys.argv)
-    window = MainWindow()
+
+    login = LoginWindow()
+    if login.exec() != LoginWindow.DialogCode.Accepted or login.authenticated_user is None:
+        sys.exit(0)
+
+    window = MainWindow(login.authenticated_user)
     window.show()
     sys.exit(app.exec())
 

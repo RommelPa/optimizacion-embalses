@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 
-from PySide6.QtCore import QDate, QThread
+from PySide6.QtCore import QDate, QThread, Qt
 from PySide6.QtWidgets import (
     QDateEdit,
     QFileDialog,
@@ -16,7 +16,9 @@ from PySide6.QtWidgets import (
     QTextEdit,
     QVBoxLayout,
     QWidget,
+    QScrollArea,
 )
+
 
 from workers.corrida_worker import CorridaWorker
 
@@ -39,20 +41,59 @@ class NuevaCorridaPage(QWidget):
         self.on_open_detail = on_open_detail
 
     def _build_ui(self) -> None:
-        layout = QVBoxLayout(self)
+        root_layout = QVBoxLayout(self)
+        root_layout.setContentsMargins(0, 0, 0, 0)
+        root_layout.setSpacing(0)
+
+        self.scroll_area = QScrollArea()
+        self.scroll_area.setWidgetResizable(True)
+        self.scroll_area.setFrameShape(QScrollArea.Shape.NoFrame)
+        root_layout.addWidget(self.scroll_area)
+
+        self.content_widget = QWidget()
+        self.scroll_area.setWidget(self.content_widget)
+
+        main_layout = QVBoxLayout(self.content_widget)
+        main_layout.setContentsMargins(24, 20, 24, 20)
+        main_layout.setSpacing(16)
 
         title = QLabel("Nueva corrida")
-        title.setStyleSheet("font-size: 22px; font-weight: 600;")
-        layout.addWidget(title)
+        title.setObjectName("PageTitle")
+        main_layout.addWidget(title)
 
+        subtitle = QLabel(
+            "Ejecute una nueva corrida a partir del archivo Excel oficial "
+            "y revise el resultado en el historial o en el detalle."
+        )
+        subtitle.setObjectName("PageSubtitle")
+        subtitle.setWordWrap(True)
+        main_layout.addWidget(subtitle)
+
+        main_layout.addWidget(self._build_form_group())
+        main_layout.addLayout(self._build_actions())
+        main_layout.addWidget(self._build_result_group())
+        main_layout.addStretch()
+
+    def _build_form_group(self) -> QGroupBox:
         form_group = QGroupBox("Datos de la corrida")
         form_layout = QFormLayout(form_group)
+        form_layout.setHorizontalSpacing(20)
+        form_layout.setVerticalSpacing(12)
+        form_layout.setFieldGrowthPolicy(
+            QFormLayout.FieldGrowthPolicy.AllNonFixedFieldsGrow
+        )
+        form_layout.setRowWrapPolicy(QFormLayout.RowWrapPolicy.WrapLongRows)
 
         self.caso_estudio_input = QLineEdit()
-        self.caso_estudio_input.setPlaceholderText("Ej. Base abril 2026 - validación manual")
+        self.caso_estudio_input.setPlaceholderText(
+            "Ej. Base abril 2026 - validación manual"
+        )
 
         self.modo_operacion_value = "inicial"
         self.modo_operacion_label = QLabel("inicial")
+        self.modo_operacion_label.setTextInteractionFlags(
+            Qt.TextInteractionFlag.TextSelectableByMouse
+        )
 
         self.fecha_proceso_input = QDateEdit()
         self.fecha_proceso_input.setCalendarPopup(True)
@@ -61,14 +102,22 @@ class NuevaCorridaPage(QWidget):
 
         self.escenario_value = "base"
         self.escenario_label = QLabel("base")
+        self.escenario_label.setTextInteractionFlags(
+            Qt.TextInteractionFlag.TextSelectableByMouse
+        )
 
         self.origen_datos_value = "excel"
         self.origen_datos_label = QLabel("excel")
+        self.origen_datos_label.setTextInteractionFlags(
+            Qt.TextInteractionFlag.TextSelectableByMouse
+        )
 
         self.archivo_entrada_input = QLineEdit()
         self.archivo_entrada_input.setReadOnly(True)
+        self.archivo_entrada_input.setPlaceholderText("Seleccione un archivo Excel...")
 
         archivo_layout = QHBoxLayout()
+        archivo_layout.setSpacing(8)
         archivo_layout.addWidget(self.archivo_entrada_input)
 
         self.buscar_archivo_btn = QPushButton("Seleccionar Excel")
@@ -76,7 +125,10 @@ class NuevaCorridaPage(QWidget):
         archivo_layout.addWidget(self.buscar_archivo_btn)
 
         self.observaciones_input = QTextEdit()
-        self.observaciones_input.setFixedHeight(100)
+        self.observaciones_input.setMinimumHeight(110)
+        self.observaciones_input.setPlaceholderText(
+            "Ingrese observaciones opcionales para esta corrida."
+        )
 
         form_layout.addRow("Caso de estudio", self.caso_estudio_input)
         form_layout.addRow("Modo de operación", self.modo_operacion_label)
@@ -86,19 +138,43 @@ class NuevaCorridaPage(QWidget):
         form_layout.addRow("Archivo de entrada", archivo_layout)
         form_layout.addRow("Observaciones", self.observaciones_input)
 
-        layout.addWidget(form_group)
+        return form_group
+
+    def _build_actions(self) -> QHBoxLayout:
+        actions_layout = QHBoxLayout()
+        actions_layout.setSpacing(10)
 
         self.crear_btn = QPushButton("Crear corrida")
+        self.crear_btn.setMinimumHeight(34)
         self.crear_btn.clicked.connect(self._submit)
-        layout.addWidget(self.crear_btn)
 
-        self.resultado_label = QLabel("")
+        self.limpiar_btn = QPushButton("Limpiar")
+        self.limpiar_btn.setMinimumHeight(34)
+        self.limpiar_btn.clicked.connect(lambda: self._clear_form(reset_result=True))
+
+        actions_layout.addStretch()
+        actions_layout.addWidget(self.limpiar_btn)
+        actions_layout.addWidget(self.crear_btn)
+
+        return actions_layout
+
+    def _build_result_group(self) -> QGroupBox:
+        result_group = QGroupBox("Estado de ejecución")
+        result_layout = QVBoxLayout(result_group)
+
+        self.resultado_label = QLabel("Sin ejecución reciente.")
+        self.resultado_label.setObjectName("StatusPanel")
         self.resultado_label.setWordWrap(True)
-        layout.addWidget(self.resultado_label)
+        self.resultado_label.setMinimumHeight(70)
+        self.resultado_label.setAlignment(
+            Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft
+        )
+        self.resultado_label.setTextInteractionFlags(
+            Qt.TextInteractionFlag.TextSelectableByMouse
+        )
 
-        layout.addStretch()
-        self.archivo_entrada_input.setEnabled(True)
-        self.buscar_archivo_btn.setEnabled(True)
+        result_layout.addWidget(self.resultado_label)
+        return result_group
 
     def _set_form_enabled(self, enabled: bool) -> None:
         self.caso_estudio_input.setEnabled(enabled)
@@ -107,6 +183,7 @@ class NuevaCorridaPage(QWidget):
         self.archivo_entrada_input.setEnabled(enabled)
         self.buscar_archivo_btn.setEnabled(enabled)
         self.crear_btn.setEnabled(enabled)
+        self.limpiar_btn.setEnabled(enabled)
 
     def _select_excel_file(self) -> None:
         filepath, _ = QFileDialog.getOpenFileName(
@@ -118,11 +195,25 @@ class NuevaCorridaPage(QWidget):
         if filepath:
             self.archivo_entrada_input.setText(filepath)
 
-    def _clear_form(self) -> None:
+    def _reset_form_fields(self) -> None:
         self.caso_estudio_input.clear()
         self.fecha_proceso_input.setDate(QDate.currentDate())
         self.archivo_entrada_input.clear()
         self.observaciones_input.clear()
+
+    def _clear_form(self, reset_result: bool = False) -> None:
+        if self.worker_thread is not None and self.worker_thread.isRunning():
+            QMessageBox.warning(
+                self,
+                "Validación",
+                "No se puede limpiar el formulario mientras hay una corrida en ejecución.",
+            )
+            return
+
+        self._reset_form_fields()
+
+        if reset_result:
+            self.resultado_label.setText("Sin ejecución reciente.")
 
     def _submit(self) -> None:
         if self.worker_thread is not None and self.worker_thread.isRunning():
@@ -132,6 +223,7 @@ class NuevaCorridaPage(QWidget):
                 "Ya hay una corrida en ejecución.",
             )
             return
+
         caso_estudio = self.caso_estudio_input.text().strip()
         modo_operacion = self.modo_operacion_value
         fecha_proceso = self.fecha_proceso_input.date().toString("yyyy-MM-dd")
@@ -145,11 +237,18 @@ class NuevaCorridaPage(QWidget):
             return
 
         if not archivo_entrada:
-            QMessageBox.warning(self, "Validación", "Debes seleccionar un archivo Excel.")
+            QMessageBox.warning(
+                self,
+                "Validación",
+                "Debes seleccionar un archivo Excel.",
+            )
             return
 
         self._set_form_enabled(False)
-        self.resultado_label.setText("Estado actual: ejecutando...\nEjecutando corrida...")
+        self.resultado_label.setText(
+            "Estado actual: ejecutando...\n"
+            "Ejecutando corrida..."
+        )
 
         parent_window = self.window()
         set_status_message = getattr(parent_window, "set_status_message", None)
@@ -200,7 +299,7 @@ class NuevaCorridaPage(QWidget):
         if self.on_refresh_historial:
             self.on_refresh_historial()
 
-        self._clear_form()
+        self._reset_form_fields()
         self._set_form_enabled(True)
 
         msg = QMessageBox(self)
@@ -225,7 +324,8 @@ class NuevaCorridaPage(QWidget):
         set_status_message = getattr(parent_window, "set_status_message", None)
 
         self.resultado_label.setText(
-            "Estado actual: error.\nLa corrida no pudo completarse."
+            "Estado actual: error.\n"
+            "La corrida no pudo completarse."
         )
         self._set_form_enabled(True)
 

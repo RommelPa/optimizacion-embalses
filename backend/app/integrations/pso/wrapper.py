@@ -9,7 +9,6 @@ from app.integrations.pso.input_mapper import build_engine_input_from_wrapper
 def ejecutar_corrida_pso(payload: PSOWrapperInput) -> PSOWrapperOutput:
     try:
         engine_input = build_engine_input_from_wrapper(payload)
-        print("CONFIG PSO:", engine_input.configuracion_pso)
 
         resultado = run_pso_engine(
             horas=engine_input.horas,

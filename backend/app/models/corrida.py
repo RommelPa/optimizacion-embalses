@@ -23,6 +23,10 @@ class Corrida(Base):
     origen_datos: Mapped[str] = mapped_column(String, nullable=False)
     observaciones: Mapped[str | None] = mapped_column(Text, nullable=True)
 
+    usuario_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True, default=0)
+    usuario_username: Mapped[str] = mapped_column(String, nullable=False, index=True, default="")
+    usuario_rol: Mapped[str] = mapped_column(String, nullable=False, index=True, default="")
+
     estado: Mapped[str] = mapped_column(String, nullable=False)
     version_modelo: Mapped[str] = mapped_column(String, nullable=False)
     modo_ejecucion: Mapped[str] = mapped_column(String, nullable=False)

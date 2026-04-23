@@ -16,6 +16,9 @@ class CorridaWorker(QObject):
         fecha_proceso: str,
         escenario: str,
         origen_datos: str,
+        usuario_id: int,
+        usuario_username: str,
+        usuario_rol: str,
         observaciones: str | None,
         archivo_entrada: str | None,
     ) -> None:
@@ -26,6 +29,9 @@ class CorridaWorker(QObject):
         self.fecha_proceso = fecha_proceso
         self.escenario = escenario
         self.origen_datos = origen_datos
+        self.usuario_id = usuario_id
+        self.usuario_username = usuario_username
+        self.usuario_rol = usuario_rol
         self.observaciones = observaciones
         self.archivo_entrada = archivo_entrada
 
@@ -37,6 +43,9 @@ class CorridaWorker(QObject):
                 fecha_proceso=self.fecha_proceso,
                 escenario=self.escenario,
                 origen_datos=self.origen_datos,
+                usuario_id=self.usuario_id,
+                usuario_username=self.usuario_username,
+                usuario_rol=self.usuario_rol,
                 observaciones=self.observaciones,
                 archivo_entrada=self.archivo_entrada,
             )

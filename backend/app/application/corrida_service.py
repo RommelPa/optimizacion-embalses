@@ -86,6 +86,9 @@ class CorridaService:
                 cfg_v_campanario_min=config_actual["v_campanario_min"],
                 cfg_q_rango_min=config_actual["q_rango_min"],
                 cfg_q_rango_max=config_actual["q_rango_max"],
+                usuario_id=payload.usuario_id,
+                usuario_username=payload.usuario_username,
+                usuario_rol=payload.usuario_rol,
             )
             self.repo.add(corrida_db)
 
@@ -152,6 +155,9 @@ class CorridaService:
                 cfg_v_campanario_min=config_actual["v_campanario_min"],
                 cfg_q_rango_min=config_actual["q_rango_min"],
                 cfg_q_rango_max=config_actual["q_rango_max"],
+                usuario_id=payload.usuario_id,
+                usuario_username=payload.usuario_username,
+                usuario_rol=payload.usuario_rol,
             )
             self.repo.add(corrida_db)
             raise CorridaValidationAppError(str(exc)) from exc
@@ -198,6 +204,9 @@ class CorridaService:
                 cfg_v_campanario_min=config_actual["v_campanario_min"],
                 cfg_q_rango_min=config_actual["q_rango_min"],
                 cfg_q_rango_max=config_actual["q_rango_max"],
+                usuario_id=payload.usuario_id,
+                usuario_username=payload.usuario_username,
+                usuario_rol=payload.usuario_rol,
             )
             self.repo.add(corrida_db)
             raise CorridaExecutionAppError(str(exc)) from exc
@@ -230,6 +239,8 @@ class CorridaService:
                 "modo_ejecucion": row.modo_ejecucion,
                 "best_cost": row.best_cost,
                 "execution_time_sec": row.execution_time_sec,
+                "usuario_username": row.usuario_username,
+                "usuario_rol": row.usuario_rol,
             }
             for row in rows
         ]
@@ -271,6 +282,9 @@ class CorridaService:
             "p_char_5": json.loads(row.p_char_5_json),
             "input_payload_json": row.input_payload_json,
             "error_message": row.error_message,
+            "usuario_id": row.usuario_id,
+            "usuario_username": row.usuario_username,
+            "usuario_rol": row.usuario_rol,
             "configuracion_usada": {
                 "c1": row.cfg_c1,
                 "c2": row.cfg_c2,

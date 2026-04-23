@@ -11,8 +11,12 @@ class CrearCorridaInput:
     fecha_proceso: str
     escenario: str
     origen_datos: str
+    usuario_id: int
+    usuario_username: str
+    usuario_rol: str
     observaciones: Optional[str] = None
     archivo_entrada: Optional[str] = None
+
 
 @dataclass
 class ConfiguracionGlobalInput:

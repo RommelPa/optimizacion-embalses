@@ -19,13 +19,13 @@ from PySide6.QtWidgets import (
     QScrollArea,
 )
 
-
 from workers.corrida_worker import CorridaWorker
 
 
 class NuevaCorridaPage(QWidget):
-    def __init__(self) -> None:
+    def __init__(self, user_session) -> None:
         super().__init__()
+        self.user_session = user_session
         self.on_refresh_historial: Callable[[], None] | None = None
         self.on_open_detail: Callable[[str], None] | None = None
         self.worker_thread: QThread | None = None
@@ -262,6 +262,9 @@ class NuevaCorridaPage(QWidget):
             fecha_proceso=fecha_proceso,
             escenario=escenario,
             origen_datos=origen_datos,
+            usuario_id=self.user_session.id,
+            usuario_username=self.user_session.username,
+            usuario_rol=self.user_session.rol,
             observaciones=observaciones,
             archivo_entrada=archivo_entrada,
         )

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import json
+from datetime import datetime
 from pathlib import Path
 
 from PySide6.QtCore import Qt
@@ -13,7 +13,6 @@ from PySide6.QtWidgets import (
     QLabel,
     QMessageBox,
     QPushButton,
-    QTextEdit,
     QVBoxLayout,
     QWidget,
     QSizePolicy,
@@ -53,23 +52,17 @@ class DetalleCorridaPage(QWidget):
         main_layout.addWidget(title)
 
         subtitle = QLabel(
-            "Revise la corrida seleccionada, sus métricas principales, "
-            "la configuración usada, el mensaje del modelo y el payload de entrada."
+            "Revise la corrida seleccionada, sus datos principales, "
+            "la configuración usada, las observaciones y la auditoría de ejecución."
         )
         subtitle.setObjectName("PageSubtitle")
         subtitle.setWordWrap(True)
         main_layout.addWidget(subtitle)
 
         main_layout.addLayout(self._build_top_summary_layout())
+        main_layout.addWidget(self._build_contexto_group())
         main_layout.addWidget(self._build_configuracion_group())
-        main_layout.addWidget(self._build_mensaje_group())
         main_layout.addWidget(self._build_error_group())
-        main_layout.addWidget(self._build_payload_group())
-
-        font = self.payload_text.font()
-        font.setFamily("Consolas")
-        self.payload_text.setFont(font)
-
         main_layout.addLayout(self._build_actions())
         main_layout.addStretch()
 
@@ -80,6 +73,10 @@ class DetalleCorridaPage(QWidget):
         label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
         label.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
         return label
+
+    def _set_label_value(self, label: QLabel, value: str, tooltip: str | None = None) -> None:
+        label.setText(value)
+        label.setToolTip(tooltip or value)
 
     def _build_top_summary_layout(self) -> QGridLayout:
         layout = QGridLayout()
@@ -147,6 +144,44 @@ class DetalleCorridaPage(QWidget):
         layout.setColumnStretch(1, 2)
 
         return layout
+
+    def _build_contexto_group(self) -> QGroupBox:
+        self.contexto_group = QGroupBox("Contexto y auditoría")
+        layout = QGridLayout(self.contexto_group)
+        layout.setHorizontalSpacing(16)
+        layout.setVerticalSpacing(16)
+
+        self.datos_group = QGroupBox("Datos del caso")
+        self.datos_form = QFormLayout(self.datos_group)
+        self.datos_form.setHorizontalSpacing(20)
+        self.datos_form.setVerticalSpacing(12)
+
+        self.escenario_label = self._create_value_label()
+        self.observaciones_label = self._create_value_label()
+
+        self.datos_form.addRow("Escenario", self.escenario_label)
+        self.datos_form.addRow("Observaciones", self.observaciones_label)
+
+        self.auditoria_group = QGroupBox("Auditoría de ejecución")
+        self.auditoria_form = QFormLayout(self.auditoria_group)
+        self.auditoria_form.setHorizontalSpacing(20)
+        self.auditoria_form.setVerticalSpacing(12)
+
+        self.usuario_label = self._create_value_label()
+        self.usuario_rol_label = self._create_value_label()
+        self.created_at_label = self._create_value_label()
+
+        self.auditoria_form.addRow("Ejecutada por", self.usuario_label)
+        self.auditoria_form.addRow("Rol", self.usuario_rol_label)
+        self.auditoria_form.addRow("Fecha de registro", self.created_at_label)
+
+        layout.addWidget(self.datos_group, 0, 0)
+        layout.addWidget(self.auditoria_group, 0, 1)
+
+        layout.setColumnStretch(0, 1)
+        layout.setColumnStretch(1, 1)
+
+        return self.contexto_group
 
     def _build_configuracion_group(self) -> QGroupBox:
         self.config_group = QGroupBox("Configuración usada")
@@ -217,20 +252,6 @@ class DetalleCorridaPage(QWidget):
 
         return self.config_group
 
-    def _build_mensaje_group(self) -> QGroupBox:
-        self.mensaje_group = QGroupBox("Mensaje del modelo")
-        self.mensaje_layout = QVBoxLayout(self.mensaje_group)
-
-        self.mensaje_label = QLabel("-")
-        self.mensaje_label.setObjectName("StatusPanel")
-        self.mensaje_label.setWordWrap(True)
-        self.mensaje_label.setTextInteractionFlags(
-            Qt.TextInteractionFlag.TextSelectableByMouse
-        )
-
-        self.mensaje_layout.addWidget(self.mensaje_label)
-        return self.mensaje_group
-
     def _build_error_group(self) -> QGroupBox:
         self.error_group = QGroupBox("Detalle de error")
         self.error_layout = QVBoxLayout(self.error_group)
@@ -245,19 +266,6 @@ class DetalleCorridaPage(QWidget):
         self.error_layout.addWidget(self.error_label)
         self.error_group.setVisible(False)
         return self.error_group
-
-    def _build_payload_group(self) -> QGroupBox:
-        self.payload_group = QGroupBox("Payload de entrada")
-        self.payload_layout = QVBoxLayout(self.payload_group)
-
-        self.payload_text = QTextEdit()
-        self.payload_text.setReadOnly(True)
-        self.payload_text.setPlaceholderText("Aquí se mostrará el payload de entrada.")
-        self.payload_text.setMinimumHeight(220)
-        self.payload_text.setLineWrapMode(QTextEdit.LineWrapMode.WidgetWidth)
-
-        self.payload_layout.addWidget(self.payload_text)
-        return self.payload_group
 
     def _build_actions(self) -> QHBoxLayout:
         actions = QHBoxLayout()
@@ -279,78 +287,107 @@ class DetalleCorridaPage(QWidget):
         best_cost = detail.get("best_cost")
         execution_time = detail.get("execution_time_sec")
         q_salida = detail.get("q_salida_campanario")
+        corrida_id_text = str(detail.get("id", "-"))
 
-        self.id_label.setText(detail.get("id", "-"))
-        self.caso_estudio_label.setText(detail.get("caso_estudio", "-"))
-        self.estado_label.setText(detail.get("estado", "-"))
-        self.origen_label.setText(detail.get("origen_datos", "-"))
-        self.fecha_label.setText(detail.get("fecha_proceso", "-"))
-        self.best_cost_label.setText(self._format_number(best_cost, 2))
-        self.tiempo_label.setText(self._format_number(execution_time, 4))
-        self.q_salida_label.setText(self._format_number(q_salida, 3))
-        self.version_modelo_label.setText(detail.get("version_modelo", "-"))
-        self.modo_ejecucion_label.setText(detail.get("modo_ejecucion", "-"))
-        self.modo_operacion_label.setText(detail.get("modo_operacion", "-"))
+        self._set_label_value(self.id_label, corrida_id_text, corrida_id_text)
+        self._set_label_value(self.caso_estudio_label, self._format_text(detail.get("caso_estudio")))
+        self._set_label_value(self.estado_label, self._format_text(detail.get("estado")))
+        self._set_label_value(self.origen_label, self._format_text(detail.get("origen_datos")))
+        self._set_label_value(self.fecha_label, self._format_text(detail.get("fecha_proceso")))
+        self._set_label_value(self.best_cost_label, self._format_number(best_cost, 2))
+        self._set_label_value(self.tiempo_label, self._format_number(execution_time, 2))
+        self._set_label_value(self.q_salida_label, self._format_number(q_salida, 3))
+        self._set_label_value(self.version_modelo_label, self._format_text(detail.get("version_modelo")))
+        self._set_label_value(self.modo_ejecucion_label, self._format_text(detail.get("modo_ejecucion")))
+        self._set_label_value(self.modo_operacion_label, self._format_text(detail.get("modo_operacion")))
+
+        self._set_label_value(self.escenario_label, self._format_text(detail.get("escenario")))
+        self._set_label_value(
+            self.observaciones_label,
+            self._format_text(detail.get("observaciones"), empty_text="Sin observaciones"),
+        )
+        self._set_label_value(self.usuario_label, self._format_text(detail.get("usuario_username")))
+        self._set_label_value(self.usuario_rol_label, self._format_text(detail.get("usuario_rol")))
+        self._set_label_value(
+            self.created_at_label,
+            self._format_datetime_display(detail.get("created_at")),
+            self._format_text(detail.get("created_at")),
+        )
 
         configuracion_usada = detail.get("configuracion_usada", {}) or {}
         self._load_configuracion_usada(configuracion_usada)
 
-        raw_payload = detail.get("input_payload_json", "")
-        self.payload_text.setPlainText(self._format_payload_json(raw_payload))
-
         q_opt = detail.get("q_opt", []) or []
         ingreso = detail.get("ingreso", []) or []
 
-        self.periodos_label.setText(str(len(q_opt)))
-        self.q_min_label.setText(f"{min(q_opt):.3f}" if q_opt else "-")
-        self.q_max_label.setText(f"{max(q_opt):.3f}" if q_opt else "-")
-        self.q_promedio_label.setText(
-            f"{(sum(q_opt) / len(q_opt)):.3f}" if q_opt else "-"
-        )
-        self.ingreso_total_label.setText(
-            f"{sum(ingreso):,.2f}" if ingreso else "-"
+        self._set_label_value(self.periodos_label, str(len(q_opt)))
+        self._set_label_value(self.q_min_label, self._format_sequence_stat(q_opt, "min", 3))
+        self._set_label_value(self.q_max_label, self._format_sequence_stat(q_opt, "max", 3))
+        self._set_label_value(self.q_promedio_label, self._format_sequence_stat(q_opt, "avg", 3))
+        self._set_label_value(
+            self.ingreso_total_label,
+            self._format_number(sum(ingreso), 2) if ingreso else "-",
         )
 
-        estado = detail.get("estado", "-")
-        modo_ejecucion = detail.get("modo_ejecucion", "-")
-        mensaje_modelo = detail.get("mensaje_modelo", "-")
         error_message = detail.get("error_message")
-
-        mensaje_estado, mostrar_error = self._build_estado_descripcion(
-            estado=estado,
-            modo_ejecucion=modo_ejecucion,
-            mensaje_modelo=mensaje_modelo,
-            error_message=error_message,
-        )
-
-        self.mensaje_label.setText(mensaje_estado)
-
-        if mostrar_error:
-            self.error_label.setText(error_message or mensaje_estado)
+        if error_message:
+            self.error_label.setText(str(error_message))
+            self.error_label.setToolTip(str(error_message))
             self.error_group.setVisible(True)
         else:
             self.error_label.setText("-")
+            self.error_label.setToolTip("")
             self.error_group.setVisible(False)
 
     def _load_configuracion_usada(self, data: dict) -> None:
-        self.cfg_c1_label.setText(self._format_number(data.get("c1"), 4))
-        self.cfg_c2_label.setText(self._format_number(data.get("c2"), 4))
-        self.cfg_w_label.setText(self._format_number(data.get("w"), 4))
-        self.cfg_v_max_label.setText(self._format_number(data.get("v_max"), 4))
-        self.cfg_n_particles_label.setText(str(data.get("n_particles", "-")))
-        self.cfg_max_iter_label.setText(str(data.get("max_iter", "-")))
+        self._set_label_value(self.cfg_c1_label, self._format_number(data.get("c1"), 4))
+        self._set_label_value(self.cfg_c2_label, self._format_number(data.get("c2"), 4))
+        self._set_label_value(self.cfg_w_label, self._format_number(data.get("w"), 4))
+        self._set_label_value(self.cfg_v_max_label, self._format_number(data.get("v_max"), 4))
+        self._set_label_value(self.cfg_n_particles_label, self._format_int(data.get("n_particles")))
+        self._set_label_value(self.cfg_max_iter_label, self._format_int(data.get("max_iter")))
 
-        self.cfg_rend_ch4_label.setText(self._format_number(data.get("rendimiento_ch4"), 4))
-        self.cfg_rend_ch6_label.setText(self._format_number(data.get("rendimiento_ch6"), 4))
-        self.cfg_v_inicio_label.setText(self._format_number(data.get("v_inicio_factor"), 4))
-        self.cfg_v_final_label.setText(self._format_number(data.get("v_final_factor"), 4))
+        self._set_label_value(
+            self.cfg_rend_ch4_label,
+            self._format_number(data.get("rendimiento_ch4"), 4),
+        )
+        self._set_label_value(
+            self.cfg_rend_ch6_label,
+            self._format_number(data.get("rendimiento_ch6"), 4),
+        )
+        self._set_label_value(
+            self.cfg_v_inicio_label,
+            self._format_number(data.get("v_inicio_factor"), 4),
+        )
+        self._set_label_value(
+            self.cfg_v_final_label,
+            self._format_number(data.get("v_final_factor"), 4),
+        )
 
-        self.cfg_v_cincel_max_label.setText(self._format_number(data.get("v_cincel_max"), 2))
-        self.cfg_v_cincel_min_label.setText(self._format_number(data.get("v_cincel_min"), 2))
-        self.cfg_v_camp_max_label.setText(self._format_number(data.get("v_campanario_max"), 2))
-        self.cfg_v_camp_min_label.setText(self._format_number(data.get("v_campanario_min"), 2))
-        self.cfg_q_min_label.setText(self._format_number(data.get("q_rango_min"), 4))
-        self.cfg_q_max_label.setText(self._format_number(data.get("q_rango_max"), 4))
+        self._set_label_value(
+            self.cfg_v_cincel_max_label,
+            self._format_number(data.get("v_cincel_max"), 2),
+        )
+        self._set_label_value(
+            self.cfg_v_cincel_min_label,
+            self._format_number(data.get("v_cincel_min"), 2),
+        )
+        self._set_label_value(
+            self.cfg_v_camp_max_label,
+            self._format_number(data.get("v_campanario_max"), 2),
+        )
+        self._set_label_value(
+            self.cfg_v_camp_min_label,
+            self._format_number(data.get("v_campanario_min"), 2),
+        )
+        self._set_label_value(
+            self.cfg_q_min_label,
+            self._format_number(data.get("q_rango_min"), 4),
+        )
+        self._set_label_value(
+            self.cfg_q_max_label,
+            self._format_number(data.get("q_rango_max"), 4),
+        )
 
     def export_excel(self) -> None:
         if not self.current_corrida_id:
@@ -384,56 +421,21 @@ class DetalleCorridaPage(QWidget):
                 f"No se pudo exportar el Excel:\n{exc}",
             )
 
-    def _build_estado_descripcion(
-        self,
-        estado: str,
-        modo_ejecucion: str,
-        mensaje_modelo: str,
-        error_message: str | None,
-    ) -> tuple[str, bool]:
-        estado_normalizado = (estado or "").strip().lower()
-        modo_normalizado = (modo_ejecucion or "").strip().lower()
+    def _format_text(self, value: object, empty_text: str = "-") -> str:
+        if value is None:
+            return empty_text
 
-        if estado_normalizado == "completada":
-            return mensaje_modelo or "Corrida completada correctamente.", False
+        text = str(value).strip()
+        return text if text else empty_text
 
-        if estado_normalizado == "rechazada":
-            if error_message:
-                return (
-                    "La corrida fue rechazada por validación de entrada.\n\n"
-                    f"Detalle: {error_message}",
-                    True,
-                )
-            return (
-                "La corrida fue rechazada por validación de entrada.",
-                True,
-            )
+    def _format_int(self, value: object) -> str:
+        if value is None:
+            return "-"
 
-        if estado_normalizado == "fallida":
-            if modo_normalizado == "error_ejecucion" and error_message:
-                return (
-                    "La corrida falló durante la ejecución del motor.\n\n"
-                    f"Detalle: {error_message}",
-                    True,
-                )
-            if error_message:
-                return (
-                    "La corrida falló por un error no recuperable.\n\n"
-                    f"Detalle: {error_message}",
-                    True,
-                )
-            return (
-                "La corrida falló por un error no recuperable.",
-                True,
-            )
-
-        if error_message:
-            return (
-                f"{mensaje_modelo or 'Estado no reconocido.'}\n\nDetalle: {error_message}",
-                True,
-            )
-
-        return mensaje_modelo or "Sin información adicional.", False
+        try:
+            return str(int(float(str(value))))
+        except (ValueError, TypeError):
+            return str(value)
 
     def _format_number(
         self,
@@ -448,12 +450,35 @@ class DetalleCorridaPage(QWidget):
         except (ValueError, TypeError):
             return str(value)
 
-    def _format_payload_json(self, payload: str) -> str:
-        if not payload.strip():
-            return ""
+    def _format_sequence_stat(
+        self,
+        values: list[float],
+        stat: str,
+        decimals: int = 3,
+    ) -> str:
+        if not values:
+            return "-"
+
+        if stat == "min":
+            return self._format_number(min(values), decimals)
+        if stat == "max":
+            return self._format_number(max(values), decimals)
+        if stat == "avg":
+            return self._format_number(sum(values) / len(values), decimals)
+
+        return "-"
+
+    def _format_datetime_display(self, value: object) -> str:
+        if value is None:
+            return "-"
+
+        text = str(value).strip()
+        if not text:
+            return "-"
 
         try:
-            parsed = json.loads(payload)
-            return json.dumps(parsed, indent=2, ensure_ascii=False)
-        except (json.JSONDecodeError, TypeError):
-            return payload
+            iso_text = text.replace("Z", "+00:00")
+            dt = datetime.fromisoformat(iso_text)
+            return dt.strftime("%d/%m/%Y %H:%M")
+        except ValueError:
+            return text

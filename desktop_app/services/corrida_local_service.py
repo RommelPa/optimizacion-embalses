@@ -16,6 +16,9 @@ class CorridaLocalService:
         fecha_proceso: str,
         escenario: str,
         origen_datos: str,
+        usuario_id: int,
+        usuario_username: str,
+        usuario_rol: str,
         observaciones: str | None,
         archivo_entrada: str | None,
     ) -> dict[str, Any]:
@@ -29,6 +32,9 @@ class CorridaLocalService:
                     fecha_proceso=fecha_proceso,
                     escenario=escenario,
                     origen_datos=origen_datos,
+                    usuario_id=usuario_id,
+                    usuario_username=usuario_username,
+                    usuario_rol=usuario_rol,
                     observaciones=observaciones,
                     archivo_entrada=archivo_entrada,
                 )

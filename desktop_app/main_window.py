@@ -217,7 +217,7 @@ class MainWindow(QMainWindow):
         ayuda_menu.addAction(self.action_acerca_de)
 
     def _build_pages(self) -> None:
-        self.nueva_corrida_page = NuevaCorridaPage()
+        self.nueva_corrida_page = NuevaCorridaPage(self.user_session)
         self.historial_page = HistorialPage(on_open_detail=self.open_detail_page)
         self.detalle_page = DetalleCorridaPage()
         self.configuracion_page = ConfiguracionPage(self.user_session)

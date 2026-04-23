@@ -19,13 +19,26 @@ def main() -> None:
 
     app = QApplication(sys.argv)
 
-    login = LoginWindow()
-    if login.exec() != LoginWindow.DialogCode.Accepted or login.authenticated_user is None:
-        sys.exit(0)
+    while True:
+        login = LoginWindow()
+        login_result = login.exec()
 
-    window = MainWindow(login.authenticated_user)
-    window.show()
-    sys.exit(app.exec())
+        if (
+            login_result != LoginWindow.DialogCode.Accepted
+            or login.authenticated_user is None
+        ):
+            break
+
+        window = MainWindow(login.authenticated_user)
+        window.show()
+        app.exec()
+
+        if getattr(window, "logout_requested", False):
+            continue
+
+        break
+
+    sys.exit(0)
 
 
 if __name__ == "__main__":

@@ -23,10 +23,12 @@ from ui.pages.historial_page import HistorialPage
 from ui.pages.nueva_corrida_page import NuevaCorridaPage
 from ui.themes import get_dark_stylesheet, get_light_stylesheet
 
+
 class MainWindow(QMainWindow):
     def __init__(self, user_session) -> None:
         super().__init__()
         self.user_session = user_session
+        self.logout_requested = False
         self.setWindowTitle("Optimización Embalses - Escritorio")
         self.resize(1280, 800)
 
@@ -69,6 +71,9 @@ class MainWindow(QMainWindow):
         self.action_tema_oscuro = QAction("Modo oscuro", self)
         self.action_tema_oscuro.triggered.connect(self.apply_dark_theme)
 
+        self.action_cerrar_sesion = QAction("Cerrar sesión", self)
+        self.action_cerrar_sesion.triggered.connect(self.logout)
+
         self.action_salir = QAction("Salir", self)
         self.action_salir.triggered.connect(self.close)
 
@@ -107,13 +112,19 @@ class MainWindow(QMainWindow):
         self.activity_bar.setObjectName("ActivityBar")
         self.activity_bar.setFixedWidth(64)
 
-        layout = QVBoxLayout(self.activity_bar)
-        layout.setContentsMargins(8, 10, 8, 10)
-        layout.setSpacing(8)
+        root_layout = QVBoxLayout(self.activity_bar)
+        root_layout.setContentsMargins(8, 10, 8, 10)
+        root_layout.setSpacing(0)
+
+        top_layout = QVBoxLayout()
+        top_layout.setSpacing(8)
+
+        bottom_layout = QVBoxLayout()
+        bottom_layout.setSpacing(8)
 
         self.btn_nav_nueva = self._create_nav_button(
             tooltip="Nueva corrida",
-            icon=self.style().standardIcon(QStyle.StandardPixmap.SP_FileDialogNewFolder),
+            icon=self.style().standardIcon(QStyle.StandardPixmap.SP_DialogSaveButton),
             callback=self.show_nueva_corrida_page,
         )
         self.btn_nav_historial = self._create_nav_button(
@@ -123,13 +134,25 @@ class MainWindow(QMainWindow):
         )
         self.btn_nav_detalle = self._create_nav_button(
             tooltip="Detalle actual",
-            icon=self.style().standardIcon(QStyle.StandardPixmap.SP_FileDialogInfoView),
+            icon=self.style().standardIcon(QStyle.StandardPixmap.SP_FileDialogContentsView),
             callback=self.show_detalle_page,
         )
         self.btn_nav_config = self._create_nav_button(
             tooltip="Configuración",
-            icon=self.style().standardIcon(QStyle.StandardPixmap.SP_ComputerIcon),
+            icon=self.style().standardIcon(QStyle.StandardPixmap.SP_MessageBoxInformation),
             callback=self.show_configuracion_page,
+        )
+        self.btn_nav_logout = self._create_nav_button(
+            tooltip="Cerrar sesión",
+            icon=self.style().standardIcon(QStyle.StandardPixmap.SP_BrowserReload),
+            callback=self.logout,
+            checkable=False,
+        )
+        self.btn_nav_exit = self._create_nav_button(
+            tooltip="Salir",
+            icon=self.style().standardIcon(QStyle.StandardPixmap.SP_MessageBoxCritical),
+            callback=self.close,
+            checkable=False,
         )
 
         self.nav_buttons = {
@@ -139,21 +162,29 @@ class MainWindow(QMainWindow):
             "configuracion": self.btn_nav_config,
         }
 
-        layout.addWidget(self.btn_nav_nueva)
-        layout.addWidget(self.btn_nav_historial)
-        layout.addWidget(self.btn_nav_detalle)
-        layout.addWidget(self.btn_nav_config)
-        layout.addStretch()
+        top_layout.addWidget(self.btn_nav_nueva)
+        top_layout.addWidget(self.btn_nav_historial)
+        top_layout.addWidget(self.btn_nav_detalle)
+
+        bottom_layout.addWidget(self.btn_nav_config)
+        bottom_layout.addWidget(self.btn_nav_logout)
+        bottom_layout.addWidget(self.btn_nav_exit)
+
+        root_layout.addLayout(top_layout)
+        root_layout.addStretch()
+        root_layout.addLayout(bottom_layout)
 
     def _create_nav_button(
         self,
         tooltip: str,
         icon,
         callback,
+        checkable: bool = True,
     ) -> QToolButton:
         btn = QToolButton()
-        btn.setCheckable(True)
-        btn.setAutoExclusive(True)
+        btn.setCheckable(checkable)
+        if checkable:
+            btn.setAutoExclusive(True)
         btn.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonIconOnly)
         btn.setIcon(icon)
         btn.setIconSize(QSize(20, 20))
@@ -176,10 +207,12 @@ class MainWindow(QMainWindow):
         archivo_menu.addAction(self.action_nueva_corrida)
         archivo_menu.addAction(self.action_historial)
         archivo_menu.addAction(self.action_detalle)
-        archivo_menu.addAction(self.action_configuracion)
-        archivo_menu.addMenu(menu_tema)
         archivo_menu.addSeparator()
+        archivo_menu.addAction(self.action_configuracion)
+        archivo_menu.addAction(self.action_cerrar_sesion)
         archivo_menu.addAction(self.action_salir)
+        archivo_menu.addSeparator()
+        archivo_menu.addMenu(menu_tema)
 
         ayuda_menu.addAction(self.action_acerca_de)
 
@@ -254,6 +287,30 @@ class MainWindow(QMainWindow):
     def apply_light_theme(self) -> None:
         self.setStyleSheet(get_light_stylesheet())
         self.set_status_message("Tema aplicado: claro", 3000)
+
+    def logout(self) -> None:
+        worker_thread = self.nueva_corrida_page.worker_thread
+
+        if worker_thread is not None and worker_thread.isRunning():
+            QMessageBox.warning(
+                self,
+                "Cerrar sesión",
+                "No puedes cerrar sesión mientras hay una corrida en ejecución.",
+            )
+            return
+
+        reply = QMessageBox.question(
+            self,
+            "Cerrar sesión",
+            "¿Deseas cerrar la sesión actual?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+        if reply != QMessageBox.StandardButton.Yes:
+            return
+
+        self.logout_requested = True
+        self.close()
 
     def _show_about_dialog(self) -> None:
         QMessageBox.information(

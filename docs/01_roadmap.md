@@ -1,0 +1,96 @@
+# Roadmap del Producto
+
+## Propósito del producto
+
+Optimización de Embalses es una aplicación de escritorio Windows para operadores e ingenieros del centro de control, diseñada para ejecutar corridas de optimización PSO de forma trazable, validada y operativamente usable, sin depender de manipulación directa del código.
+
+El producto busca reemplazar el flujo legacy operativo por una aplicación de escritorio con interfaz familiar, persistencia local y exportación controlada de resultados.
+
+## Usuarios objetivo
+
+### Operador
+Usuario operativo que necesita ejecutar corridas con una interfaz clara, validaciones visibles y un flujo similar a software corporativo clásico.
+
+### Ingeniero
+Usuario técnico-funcional que, además de ejecutar corridas, necesita ajustar configuración del sistema y parámetros del algoritmo sin editar código fuente.
+
+## Principios del producto
+
+1. El producto principal es una aplicación de escritorio Windows.
+2. La experiencia debe parecer software corporativo clásico, no una app web disfrazada.
+3. Las validaciones deben ocurrir antes de ejecutar cuando sea posible.
+4. Toda corrida debe dejar trazabilidad suficiente.
+5. Los parámetros configurables no deben depender de editar código.
+6. La documentación debe permitir que otro ingeniero continúe el desarrollo sin depender de conversaciones previas.
+7. El crecimiento del sistema debe ordenarse por versiones y no por acumulación caótica de funcionalidades.
+
+## Roadmap por versiones
+
+### V1.0 — Base operativa
+Objetivo:
+- app desktop,
+- entrada por Excel,
+- modo `inicial`,
+- validación de Excel,
+- ejecución PSO,
+- historial,
+- detalle,
+- exportación Excel,
+- base de datos local de corridas.
+
+### V1.1 — Interfaz operativa Windows
+Objetivo:
+- menú superior,
+- barra lateral de navegación,
+- diálogos y navegación más cercanos a software Windows clásico,
+- tablas y formularios más empresariales,
+- mejor organización visual.
+
+No cambia el núcleo del motor.
+
+### V1.2 — Autenticación y perfiles
+Objetivo:
+- autenticación real,
+- perfil Operador,
+- perfil Ingeniero,
+- restricciones de edición según perfil,
+- base de datos de usuarios,
+- cierre de sesión.
+
+### V1.3 — Configuración global editable
+Objetivo:
+- pantalla de configuración del sistema,
+- parámetros PSO editables por Ingeniero,
+- restricciones operativas visibles y editables según regla acordada,
+- persistencia global de configuración,
+- restaurar valores por defecto,
+- snapshot de configuración por corrida,
+- evaluación de necesidad de servidor propio.
+
+### V1.4 — Carga manual y gestión de corridas
+Objetivo:
+- captura manual de datos de entrada,
+- edición manual de parámetros según perfil,
+- validación fuerte de consistencia,
+- construcción del mismo contrato interno que el flujo Excel,
+- comparación entre corridas,
+- favoritos / casos base operativos,
+- borrado automático mensual.
+
+### V1.5 — Validación del modelo y reprogramación
+Objetivo:
+- definición de tolerancias,
+- benchmark contra legacy,
+- validación del modelo con ingeniero,
+- definición e implementación de reprogramación.
+
+### V1.6 — Integraciones, despliegue y cierre
+Objetivo:
+- scraping COES,
+- alertas basadas en scraping y reglas operativas,
+- decisión final sobre servidor propio,
+- empaquetado,
+- instalador Windows,
+- distribución manual,
+- actualización manual,
+- transferencia y capacitación.

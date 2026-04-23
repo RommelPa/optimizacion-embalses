@@ -1,19 +1,30 @@
-# Guía de Modularización del PSO
+# Guía del Motor PSO
 
 ## Objetivo
 
-Este documento explica cómo está modularizado actualmente el algoritmo PSO dentro del proyecto, indicando qué archivo contiene cada parte del flujo para facilitar mantenimiento, validación y evolución del motor.
+Este documento describe cómo está modularizado actualmente el motor PSO dentro del proyecto, indicando qué archivo contiene cada parte del flujo y qué nivel de impacto tiene cada cambio.
 
 El objetivo es que cualquier ingeniero pueda identificar rápidamente:
 
 - dónde se valida la entrada,
-- dónde se transforma el Excel a contrato de motor,
+- dónde se transforma el Excel al contrato interno,
 - dónde corre el PSO,
 - dónde está la función objetivo,
 - dónde se calcula la simulación hidráulica,
-- dónde se genera la salida para la aplicación.
+- dónde se arma la salida para la aplicación.
 
----
+## Flujo técnico resumido
+
+```text
+CorridaService
+  -> ejecutar_corrida_pso
+  -> build_engine_input_from_wrapper
+  -> build_engine_input_from_excel
+  -> run_pso_engine
+      -> ejecutar_optimizacion_pso
+      -> reparar_solucion_inteligente
+      -> calcular_volumenes_con_caudales
+```
 
 ## Vista general del flujo
 
@@ -28,24 +39,41 @@ El flujo actual del PSO es este:
 7. El resultado se persiste en base de datos.
 8. La corrida puede verse en detalle o exportarse a Excel.
 
----
+## Nivel de impacto de cambios
 
-## Mapa de archivos del PSO
+### Impacto bajo
+- `wrapper.py`
+- `contracts.py`
+- `errors.py`
 
-## 1. Punto de entrada al motor PSO
+### Impacto medio
+- `input_mapper.py`
+- `engine_runner.py`
 
-### Archivo
-`backend/app/integrations/pso/wrapper.py`
+### Impacto alto
+- `excel_reader.py`
+- `engine_input_contract.py`
+- `config.py`
 
-### Responsabilidad
-Es la puerta de entrada al motor PSO desde la capa de aplicación.
+### Impacto muy alto
+- `optimizer.py`
+- `objective.py`
+- `repair.py`
+- `simulation.py`
+
+## Mapa de archivos del motor PSO
+
+## 1. `wrapper.py`
+
+**Ruta:** `backend/app/integrations/pso/wrapper.py`  
+**Responsabilidad:** puerta de entrada al motor PSO desde la capa de aplicación.
 
 ### Qué hace
-- recibe `PSOWrapperInput`
-- construye el input interno del motor
-- llama al runner del engine
-- traduce el resultado del engine a `PSOWrapperOutput`
-- encapsula errores de ejecución como `PSOExecutionError`
+- recibe `PSOWrapperInput`,
+- construye el input interno del motor,
+- llama al runner del engine,
+- traduce el resultado del engine a `PSOWrapperOutput`,
+- encapsula errores de ejecución como `PSOExecutionError`.
 
 ### Cuándo tocarlo
 Tócalo si necesitas:
@@ -58,13 +86,10 @@ No lo toques para modificar la lógica matemática del PSO.
 
 ---
 
-## 2. Contrato externo del wrapper
+## 2. `contracts.py`
 
-### Archivo
-`backend/app/integrations/pso/contracts.py`
-
-### Responsabilidad
-Define los modelos de entrada y salida del wrapper.
+**Ruta:** `backend/app/integrations/pso/contracts.py`  
+**Responsabilidad:** definir los modelos de entrada y salida del wrapper.
 
 ### Modelos principales
 - `PSOWrapperInput`
@@ -82,19 +107,16 @@ Tócalo si cambia el contrato entre aplicación y motor.
 
 ---
 
-## 3. Mapeo del wrapper al contrato interno del engine
+## 3. `input_mapper.py`
 
-### Archivo
-`backend/app/integrations/pso/input_mapper.py`
-
-### Responsabilidad
-Convierte `PSOWrapperInput` en `EngineInputContract`.
+**Ruta:** `backend/app/integrations/pso/input_mapper.py`  
+**Responsabilidad:** convertir `PSOWrapperInput` en `EngineInputContract`.
 
 ### Qué hace
 - valida que la V1 solo use:
   - `modo_operacion = inicial`
   - `origen_datos = excel`
-- delega la construcción real al lector Excel
+- delega la construcción real al lector Excel.
 
 ### Cuándo tocarlo
 Tócalo si:
@@ -108,13 +130,10 @@ Es una pieza sensible porque conecta reglas funcionales de producto con el motor
 
 ---
 
-## 4. Contrato interno del engine
+## 4. `engine_input_contract.py`
 
-### Archivo
-`backend/app/integrations/pso/engine_input_contract.py`
-
-### Responsabilidad
-Define el contrato validado que consume el motor PSO.
+**Ruta:** `backend/app/integrations/pso/engine_input_contract.py`  
+**Responsabilidad:** definir el contrato validado que consume el motor PSO.
 
 ### Modelos principales
 - `SeriesInput`
@@ -140,19 +159,16 @@ Muy alto. Si se debilita este contrato, el engine empieza a recibir basura bien 
 
 ---
 
-## 5. Lectura y validación del Excel de entrada
+## 5. `excel_reader.py`
 
-### Archivo
-`backend/app/integrations/pso/excel_reader.py`
-
-### Responsabilidad
-Leer el archivo Excel de entrada y construir el `EngineInputContract`.
+**Ruta:** `backend/app/integrations/pso/excel_reader.py`  
+**Responsabilidad:** leer el archivo Excel de entrada y construir el `EngineInputContract`.
 
 ### Qué hace
 - verifica que el archivo exista,
 - lee el Excel,
 - valida columnas obligatorias,
-- valida registros mínimos/requeridos,
+- valida registros mínimos y requeridos,
 - convierte series a numérico,
 - lee `q_salida_campanario`,
 - construye `SeriesInput`, `RestriccionesInput` y `ConfiguracionPSOInput`.
@@ -162,7 +178,7 @@ Leer el archivo Excel de entrada y construir el `EngineInputContract`.
 - `P_CHAR 5`
 
 ### Qué valor escalar usa actualmente
-- `Q_SALIDA_CAMPANARIO` desde la estructura definida por la plantilla V1
+- `Q_SALIDA_CAMPANARIO` desde la estructura definida por la plantilla V1.
 
 ### Cuándo tocarlo
 Tócalo si:
@@ -176,39 +192,37 @@ Muy alto. Es el contrato operativo del sistema.
 
 ---
 
-## 6. Configuración global del PSO
+## 6. `config.py`
 
-### Archivo
-`backend/app/integrations/pso/config.py`
-
-### Responsabilidad
-Centraliza constantes y parámetros base del motor.
+**Ruta:** `backend/app/integrations/pso/config.py`  
+**Responsabilidad:** definir valores por defecto y constantes base del motor.
 
 ### Qué contiene
 - límites de volúmenes,
 - rango de caudales,
 - rendimientos,
-- parámetros por defecto de PSO,
-- factores de volumen inicial/final.
+- parámetros por defecto del PSO,
+- factores de volumen inicial y final.
+
+### Importante
+La configuración operativa efectiva del sistema ya no depende solo de este archivo.  
+Actualmente existe configuración persistida en base de datos, y cada corrida guarda un snapshot de la configuración usada.
 
 ### Cuándo tocarlo
 Tócalo si:
-- cambian parámetros físicos globales,
-- cambian defaults del PSO,
-- cambian restricciones base del modelo.
+- cambian defaults del sistema,
+- cambian constantes base del modelo,
+- necesitas redefinir valores por defecto iniciales.
 
 ### Riesgo
-Alto. Cambiar constantes aquí impacta todo el engine.
+Alto. Cambiar defaults aquí impacta el comportamiento base del motor y la inicialización de nuevas configuraciones.
 
 ---
 
-## 7. Runner del engine
+## 7. `engine_runner.py`
 
-### Archivo
-`backend/app/integrations/pso/engine/engine_runner.py`
-
-### Responsabilidad
-Orquestar la ejecución del engine PSO.
+**Ruta:** `backend/app/integrations/pso/engine/engine_runner.py`  
+**Responsabilidad:** orquestar la ejecución del engine PSO.
 
 ### Qué hace
 - llama al optimizador PSO,
@@ -232,20 +246,17 @@ No lo toques para ajustar penalidades o estrategia de reparación. Eso va en otr
 
 ---
 
-## 8. Optimización PSO
+## 8. `optimizer.py`
 
-### Archivo
-`backend/app/integrations/pso/engine/optimizer.py`
-
-### Responsabilidad
-Implementar la ejecución iterativa del algoritmo PSO.
+**Ruta:** `backend/app/integrations/pso/engine/optimizer.py`  
+**Responsabilidad:** implementar la ejecución iterativa del algoritmo PSO.
 
 ### Qué hace
 - construye posiciones iniciales,
 - configura el optimizador `GlobalBestPSO`,
 - ejecuta iteraciones,
 - aplica inercia dinámica,
-- guarda mejor solución encontrada,
+- guarda la mejor solución encontrada,
 - aplica reparación final,
 - devuelve:
   - `best_cost`
@@ -266,13 +277,10 @@ Alto. Aquí cambias comportamiento del algoritmo, no solo estructura.
 
 ---
 
-## 9. Función objetivo
+## 9. `objective.py`
 
-### Archivo
-`backend/app/integrations/pso/engine/objective.py`
-
-### Responsabilidad
-Definir la función objetivo que el PSO minimiza.
+**Ruta:** `backend/app/integrations/pso/engine/objective.py`  
+**Responsabilidad:** definir la función objetivo que el PSO minimiza.
 
 ### Qué hace
 Para cada partícula:
@@ -299,13 +307,10 @@ Muy alto. Este archivo cambia el comportamiento central del modelo.
 
 ---
 
-## 10. Reparación de soluciones
+## 10. `repair.py`
 
-### Archivo
-`backend/app/integrations/pso/engine/repair.py`
-
-### Responsabilidad
-Corregir soluciones propuestas por el PSO para acercarlas a restricciones válidas.
+**Ruta:** `backend/app/integrations/pso/engine/repair.py`  
+**Responsabilidad:** corregir soluciones propuestas por el PSO para acercarlas a restricciones válidas.
 
 ### Qué hace
 - suaviza el caudal propuesto,
@@ -320,7 +325,7 @@ Corregir soluciones propuestas por el PSO para acercarlas a restricciones válid
 Tócalo si:
 - cambias la lógica de reparación,
 - cambias el suavizado,
-- cambias los ajustes por exceso/déficit,
+- cambias los ajustes por exceso o déficit,
 - cambias la corrección final del volumen.
 
 ### Riesgo
@@ -328,13 +333,10 @@ Muy alto. Este módulo afecta fuertemente estabilidad y validez de soluciones.
 
 ---
 
-## 11. Simulación hidráulica y verificación de restricciones
+## 11. `simulation.py`
 
-### Archivo
-`backend/app/integrations/pso/engine/simulation.py`
-
-### Responsabilidad
-Simular evolución de volúmenes y detectar violaciones.
+**Ruta:** `backend/app/integrations/pso/engine/simulation.py`  
+**Responsabilidad:** simular evolución de volúmenes y detectar violaciones.
 
 ### Funciones principales
 - `calcular_volumenes_con_caudales`
@@ -361,13 +363,10 @@ Muy alto. Esta es la base física del resultado.
 
 ---
 
-## 12. Errores del módulo PSO
+## 12. `errors.py`
 
-### Archivo
-`backend/app/integrations/pso/errors.py`
-
-### Responsabilidad
-Define excepciones propias del wrapper PSO.
+**Ruta:** `backend/app/integrations/pso/errors.py`  
+**Responsabilidad:** definir excepciones propias del wrapper PSO.
 
 ### Excepciones
 - `PSOWrapperError`
@@ -382,17 +381,15 @@ Define excepciones propias del wrapper PSO.
 - usar `PSOValidationError` para rechazar entrada,
 - usar `PSOExecutionError` para fallas técnicas del engine.
 
----
-
 ## Relación con la capa de aplicación
 
-## Archivo
-`backend/app/application/corrida_service.py`
+## `corrida_service.py`
 
-### Responsabilidad respecto al PSO
-- arma `PSOWrapperInput`
-- llama `ejecutar_corrida_pso`
-- persiste resultados
+**Ruta:** `backend/app/application/corrida_service.py`  
+**Responsabilidad respecto al PSO:**
+- arma `PSOWrapperInput`,
+- llama `ejecutar_corrida_pso`,
+- persiste resultados,
 - clasifica estados:
   - `completada`
   - `rechazada`
@@ -404,44 +401,39 @@ El que trabaje el algoritmo no debería empezar por aquí, salvo que también qu
 - cómo se traducen errores,
 - cómo se expone la corrida al resto del sistema.
 
----
-
 ## Qué archivo tocar según el tipo de cambio
 
-## Si quieres cambiar...
-### Validación del archivo Excel
+### Si quieres cambiar validación del archivo Excel
 - `excel_reader.py`
 - `engine_input_contract.py`
 
-### Parámetros globales del modelo
+### Si quieres cambiar parámetros globales del modelo
 - `config.py`
 
-### Cómo entra el input al motor
+### Si quieres cambiar cómo entra el input al motor
 - `input_mapper.py`
 - `contracts.py`
 - `engine_input_contract.py`
 
-### Cómo se inicializa el PSO
+### Si quieres cambiar cómo se inicializa el PSO
 - `optimizer.py`
 
-### Cómo se calcula el costo total
+### Si quieres cambiar cómo se calcula el costo total
 - `objective.py`
 
-### Cómo se reparan soluciones
+### Si quieres cambiar cómo se reparan soluciones
 - `repair.py`
 
-### Cómo se simulan volúmenes y restricciones
+### Si quieres cambiar cómo se simulan volúmenes y restricciones
 - `simulation.py`
 
-### Cómo se arma la salida del motor
+### Si quieres cambiar cómo se arma la salida del motor
 - `engine_runner.py`
 - `wrapper.py`
 
----
-
 ## Orden recomendado para intervenir el algoritmo
 
-Si quiere modificar comportamiento del modelo, el orden recomendado es:
+Si el objetivo es modificar comportamiento del modelo, el orden recomendado es:
 
 1. leer `config.py`
 2. leer `engine_input_contract.py`
@@ -462,8 +454,6 @@ Ese orden permite entender:
 
 No al revés.
 
----
-
 ## Qué no tocar primero
 
 No conviene empezar por:
@@ -477,15 +467,11 @@ si el objetivo es trabajar el algoritmo.
 
 Eso es periferia del sistema, no núcleo matemático.
 
----
-
 ## Riesgos actuales conocidos
 
 - Las tolerancias numéricas contra benchmark legacy aún no están formalizadas.
 - Los umbrales de aceptación del resultado aún no están cerrados.
 - La V1 está cerrada a `inicial + excel`; reprogramación y carga manual quedan fuera por ahora.
-
----
 
 ## Recomendación de trabajo
 
@@ -501,13 +487,13 @@ Si el objetivo es mejorar o validar el algoritmo sin romper el sistema:
    - `objective.py`
    - `optimizer.py`
 
----
+## Estado técnico actual del motor
 
-## Estado actual del PSO en el proyecto
+El motor PSO ya está modularizado en piezas separadas y funcionales.
 
-El PSO ya está modularizado en piezas separadas y funcionales, pero todavía requiere validación de negocio adicional para cerrar:
+Queda pendiente cerrar técnicamente:
 
-- equivalencia con legacy,
+- benchmark contra legacy,
 - tolerancias numéricas,
 - umbrales de aceptación,
 - contrato final de la plantilla Excel.

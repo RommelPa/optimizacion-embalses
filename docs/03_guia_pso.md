@@ -53,7 +53,7 @@ El flujo actual del PSO es este:
 ### Impacto alto
 - `excel_reader.py`
 - `engine_input_contract.py`
-- `config.py`
+- configuración operativa persistida del sistema
 
 ### Impacto muy alto
 - `optimizer.py`
@@ -192,30 +192,25 @@ Muy alto. Es el contrato operativo del sistema.
 
 ---
 
-## 6. `config.py`
+## 6. Configuración operativa del sistema
 
-**Ruta:** `backend/app/integrations/pso/config.py`  
-**Responsabilidad:** definir valores por defecto y constantes base del motor.
+**Responsabilidad:** definir y persistir la configuración efectiva usada por las corridas.
 
-### Qué contiene
-- límites de volúmenes,
-- rango de caudales,
-- rendimientos,
-- parámetros por defecto del PSO,
-- factores de volumen inicial y final.
+### Dónde vive actualmente
+- servicio de configuración en backend,
+- persistencia en base de datos,
+- snapshot por corrida almacenado junto con la corrida ejecutada.
 
 ### Importante
-La configuración operativa efectiva del sistema ya no depende solo de este archivo.  
-Actualmente existe configuración persistida en base de datos, y cada corrida guarda un snapshot de la configuración usada.
+La configuración operativa ya no depende de un archivo estático de constantes como fuente principal.  
+La corrida usa la configuración persistida vigente al momento de la ejecución y guarda una copia de esa configuración para trazabilidad.
 
-### Cuándo tocarlo
-Tócalo si:
-- cambian defaults del sistema,
-- cambian constantes base del modelo,
-- necesitas redefinir valores por defecto iniciales.
-
-### Riesgo
-Alto. Cambiar defaults aquí impacta el comportamiento base del motor y la inicialización de nuevas configuraciones.
+### Cuándo tocar esta parte
+Tócala si:
+- cambian parámetros configurables del sistema,
+- cambian defaults iniciales,
+- cambian reglas de persistencia o restauración por defecto,
+- cambia la forma de exponer la configuración a la UI o al motor.
 
 ---
 
@@ -407,8 +402,10 @@ El que trabaje el algoritmo no debería empezar por aquí, salvo que también qu
 - `excel_reader.py`
 - `engine_input_contract.py`
 
-### Si quieres cambiar parámetros globales del modelo
-- `config.py`
+### Si quieres cambiar parámetros configurables del sistema
+- `backend/app/application/configuracion_service.py`
+- persistencia de configuración en base de datos
+- contrato de entrada al motor cuando corresponda
 
 ### Si quieres cambiar cómo entra el input al motor
 - `input_mapper.py`
@@ -435,14 +432,13 @@ El que trabaje el algoritmo no debería empezar por aquí, salvo que también qu
 
 Si el objetivo es modificar comportamiento del modelo, el orden recomendado es:
 
-1. leer `config.py`
-2. leer `engine_input_contract.py`
-3. leer `excel_reader.py`
-4. leer `engine_runner.py`
-5. leer `simulation.py`
-6. leer `repair.py`
-7. leer `objective.py`
-8. leer `optimizer.py`
+1. leer `engine_input_contract.py`
+2. leer `excel_reader.py`
+3. leer `engine_runner.py`
+4. leer `simulation.py`
+5. leer `repair.py`
+6. leer `objective.py`
+7. leer `optimizer.py`
 
 Ese orden permite entender:
 - entrada,
@@ -481,11 +477,15 @@ Si el objetivo es mejorar o validar el algoritmo sin romper el sistema:
 2. no cambiar el contrato Excel sin actualizar documentación,
 3. no tocar UI ni persistencia mientras se trabaja el modelo,
 4. trabajar primero dentro de:
-   - `config.py`
    - `simulation.py`
    - `repair.py`
    - `objective.py`
    - `optimizer.py`
+
+Si el cambio involucra parámetros configurables del sistema, revisar además:
+- `backend/app/application/configuracion_service.py`,
+- la persistencia de configuración,
+- el contrato de entrada que consume el motor.
 
 ## Estado técnico actual del motor
 

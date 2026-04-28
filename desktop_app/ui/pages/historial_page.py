@@ -21,7 +21,7 @@ from PySide6.QtWidgets import (
 )
 
 from services.corrida_local_service import CorridaLocalService
-
+from ui.pages.detalle_corrida.formatters import format_number
 
 class HistorialPage(QWidget):
     def __init__(self, on_open_detail: Callable[[str], None]) -> None:
@@ -221,26 +221,11 @@ class HistorialPage(QWidget):
             origen_datos = str(item.get("origen_datos", ""))
             estado = str(item.get("estado", ""))
 
-            best_cost_raw = item.get("best_cost", "")
-            execution_time_raw = item.get("execution_time_sec", "")
-
-            try:
-                best_cost_text = (
-                    f"{float(best_cost_raw):,.2f}"
-                    if best_cost_raw not in ("", None)
-                    else ""
-                )
-            except (ValueError, TypeError):
-                best_cost_text = str(best_cost_raw)
-
-            try:
-                execution_time_text = (
-                    f"{float(execution_time_raw):.2f}"
-                    if execution_time_raw not in ("", None)
-                    else ""
-                )
-            except (ValueError, TypeError):
-                execution_time_text = str(execution_time_raw)
+            best_cost_text = self._format_historial_number(item.get("best_cost"), 2)
+            execution_time_text = self._format_historial_number(
+                item.get("execution_time_sec"),
+                2,
+            )
 
             values = [
                 item_id_short,
@@ -276,6 +261,14 @@ class HistorialPage(QWidget):
         if items:
             self.table.selectRow(0)
 
+    def _format_historial_number(
+        self,
+        value: float | int | str | None,
+        decimals: int = 2,
+    ) -> str:
+        text = format_number(value, decimals)
+        return "" if text == "-" else text
+    
     def _open_selected_detail(self) -> None:
         current_row = self.table.currentRow()
         if current_row < 0:

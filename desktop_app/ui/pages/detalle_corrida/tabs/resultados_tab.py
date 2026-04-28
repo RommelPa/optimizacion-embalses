@@ -4,7 +4,6 @@ from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QHeaderView,
-    QLabel,
     QTableWidget,
     QTableWidgetItem,
     QTabWidget,
@@ -131,20 +130,6 @@ class ResultadosTab(QWidget):
         self.despacho_canvas = FigureCanvas(self.despacho_figure)
 
         layout.addWidget(self.despacho_canvas)
-        return tab
-
-    def _build_placeholder_tab(self, text: str) -> QWidget:
-        tab = QWidget()
-        layout = QVBoxLayout(tab)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(10)
-
-        label = QLabel(text)
-        label.setWordWrap(True)
-        label.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
-
-        layout.addWidget(label)
-        layout.addStretch()
         return tab
 
     def set_detail(self, detail: dict) -> None:

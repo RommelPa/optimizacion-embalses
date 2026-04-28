@@ -46,25 +46,16 @@ def build_excel_corrida_legacy(corrida: Corrida) -> tuple[bytes, str]:
 
     meta = dataset["meta"]
     tabla_rows = dataset["tabla"]["rows"]
-    caudal = dataset["caudal"]
     volumenes = dataset["volumenes"]
-    despacho = dataset["despacho"]
     validacion = dataset["validacion"]
 
     horas = meta["horas"]
-    periodos = np.array(meta["periodos"], dtype=np.int32)
-    horas_etiquetas = meta["horas_etiquetas"]
-    etiquetas_todas = meta["etiquetas_todas"]
-    tick_step = meta["tick_step"]
     titulo_modo = meta["titulo_modo"]
     q_salida_campanario = float(meta["q_salida_campanario"])
     correlacion = float(meta["correlacion"])
     ingresos_totales = float(meta["ingresos_totales"])
 
-    q_opt_arr = np.array(caudal["q_opt"], dtype=np.float64)
-    q_cincel_arr = np.array(caudal["q_entrada_cincel"], dtype=np.float64)
-    q_rango_min = float(caudal["q_rango_min"])
-    q_rango_max = float(caudal["q_rango_max"])
+    q_opt_arr = np.array(dataset["caudal"]["q_opt"], dtype=np.float64)
 
     v_cincel_arr = np.array(volumenes["v_cincel"], dtype=np.float64)
     v_camp_arr = np.array(volumenes["v_campanario"], dtype=np.float64)
@@ -72,10 +63,6 @@ def build_excel_corrida_legacy(corrida: Corrida) -> tuple[bytes, str]:
     v_cincel_max = float(volumenes["v_cincel_max"])
     v_camp_min = float(volumenes["v_campanario_min"])
     v_camp_max = float(volumenes["v_campanario_max"])
-
-    cmg_arr = np.array(despacho["cmg"], dtype=np.float64)
-    pot_ch4_arr = np.array(despacho["potencia_ch4"], dtype=np.float64)
-    pot_ch6_arr = np.array(despacho["potencia_ch6"], dtype=np.float64)
 
     viol_cincel_sobre = sum(1 for x in v_cincel_arr if x > v_cincel_max)
     viol_cincel_bajo = sum(1 for x in v_cincel_arr if x < v_cincel_min)

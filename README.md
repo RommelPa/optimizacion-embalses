@@ -4,7 +4,7 @@ Aplicación de escritorio para ejecutar, consultar y exportar corridas de optimi
 
 ## Estructura del proyecto
 
-* `backend/`: lógica, persistencia, integración PSO, exportación Excel y soporte API.
+* `backend/`: lógica, persistencia, integración PSO, exportación Excel.
 * `desktop_app/`: aplicación de escritorio.
 * `data_samples/`: archivos de ejemplo para pruebas.
 * `docs/`: documentación funcional y técnica del proyecto.

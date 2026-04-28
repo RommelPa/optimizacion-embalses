@@ -65,6 +65,7 @@ Objetivo:
 - persistencia global de configuración,
 - restaurar valores por defecto,
 - snapshot de configuración por corrida,
+- visualización de resultados en interfaz mediante tabla y gráficos,
 - evaluación de necesidad de servidor propio.
 
 ### V1.4 — Carga manual y gestión de corridas
@@ -73,8 +74,8 @@ Objetivo:
 - edición manual de parámetros según perfil,
 - validación fuerte de consistencia,
 - construcción del mismo contrato interno que el flujo Excel,
-- comparación entre corridas,
-- favoritos / casos base operativos,
+- favoritos o casos base operativos,
+- soporte de corridas base para futuras reprogramaciones,
 - borrado automático mensual.
 
 ### V1.5 — Validación del modelo y reprogramación

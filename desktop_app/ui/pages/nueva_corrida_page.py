@@ -202,7 +202,7 @@ class NuevaCorridaPage(QWidget):
         self.observaciones_input.clear()
 
     def _clear_form(self, reset_result: bool = False) -> None:
-        if self.worker_thread is not None and self.worker_thread.isRunning():
+        if self._has_running_worker():
             QMessageBox.warning(
                 self,
                 "Validación",
@@ -216,75 +216,87 @@ class NuevaCorridaPage(QWidget):
             self.resultado_label.setText("Sin ejecución reciente.")
 
     def _submit(self) -> None:
-        if self.worker_thread is not None and self.worker_thread.isRunning():
+        if self._has_running_worker():
             QMessageBox.warning(
                 self,
                 "Validación",
                 "Ya hay una corrida en ejecución.",
             )
             return
-
-        caso_estudio = self.caso_estudio_input.text().strip()
-        modo_operacion = self.modo_operacion_value
-        fecha_proceso = self.fecha_proceso_input.date().toString("yyyy-MM-dd")
-        escenario = self.escenario_value
-        origen_datos = self.origen_datos_value
-        archivo_entrada = self.archivo_entrada_input.text().strip() or None
-        observaciones = self.observaciones_input.toPlainText().strip() or None
-
-        if not caso_estudio:
-            QMessageBox.warning(self, "Validación", "Caso de estudio es obligatorio.")
+        
+        payload = self._build_form_payload()
+        if not self._validate_form_payload(payload):
             return
 
-        if not archivo_entrada:
+        self._set_running_state()
+        worker_thread = self._create_worker_thread(payload)
+        worker_thread.start()
+
+    def _build_form_payload(self) -> dict:
+        return {
+            "caso_estudio": self.caso_estudio_input.text().strip(),
+            "modo_operacion": self.modo_operacion_value,
+            "fecha_proceso": self.fecha_proceso_input.date().toString("yyyy-MM-dd"),
+            "escenario": self.escenario_value,
+            "origen_datos": self.origen_datos_value,
+            "archivo_entrada": self.archivo_entrada_input.text().strip() or None,
+            "observaciones": self.observaciones_input.toPlainText().strip() or None,
+            "usuario_id": self.user_session.id,
+            "usuario_username": self.user_session.username,
+            "usuario_rol": self.user_session.rol,
+        }
+
+    def _validate_form_payload(self, payload: dict) -> bool:
+        if not payload["caso_estudio"]:
+            QMessageBox.warning(self, "Validación", "Caso de estudio es obligatorio.")
+            return False
+
+        if not payload["archivo_entrada"]:
             QMessageBox.warning(
                 self,
                 "Validación",
                 "Debes seleccionar un archivo Excel.",
             )
-            return
+            return False
 
+        return True
+
+    def _set_running_state(self) -> None:
         self._set_form_enabled(False)
         self.resultado_label.setText(
             "Estado actual: ejecutando...\n"
             "Ejecutando corrida..."
         )
+        self._set_status_message("Ejecutando corrida...", 0)
 
+    def _set_idle_state(self) -> None:
+        self._set_form_enabled(True)
+
+    def _set_status_message(self, message: str, timeout_ms: int = 4000) -> None:
         parent_window = self.window()
         set_status_message = getattr(parent_window, "set_status_message", None)
         if callable(set_status_message):
-            set_status_message("Ejecutando corrida...", 0)
+            set_status_message(message, timeout_ms)
 
-        self.worker_thread = QThread(self)
-        self.worker = CorridaWorker(
-            caso_estudio=caso_estudio,
-            modo_operacion=modo_operacion,
-            fecha_proceso=fecha_proceso,
-            escenario=escenario,
-            origen_datos=origen_datos,
-            usuario_id=self.user_session.id,
-            usuario_username=self.user_session.username,
-            usuario_rol=self.user_session.rol,
-            observaciones=observaciones,
-            archivo_entrada=archivo_entrada,
-        )
-        self.worker.moveToThread(self.worker_thread)
+    def _create_worker_thread(self, payload: dict) -> QThread:
+        worker_thread = QThread(self)
+        worker = CorridaWorker(**payload)
+        worker.moveToThread(worker_thread)
 
-        self.worker_thread.started.connect(self.worker.run)
-        self.worker.finished.connect(self._on_corrida_success)
-        self.worker.error.connect(self._on_corrida_error)
+        worker_thread.started.connect(worker.run)
+        worker.finished.connect(self._on_corrida_success)
+        worker.error.connect(self._on_corrida_error)
 
-        self.worker.finished.connect(self.worker_thread.quit)
-        self.worker.error.connect(self.worker_thread.quit)
+        worker.finished.connect(worker_thread.quit)
+        worker.error.connect(worker_thread.quit)
+        worker_thread.finished.connect(self._cleanup_worker_thread)
 
-        self.worker_thread.finished.connect(self._cleanup_worker_thread)
+        self.worker_thread = worker_thread
+        self.worker = worker
 
-        self.worker_thread.start()
+        return worker_thread
 
     def _on_corrida_success(self, result: dict) -> None:
-        parent_window = self.window()
-        set_status_message = getattr(parent_window, "set_status_message", None)
-
         data = result.get("data", {})
         corrida_id = data.get("id", "")
 
@@ -296,19 +308,23 @@ class NuevaCorridaPage(QWidget):
             f"Tiempo (s): {data.get('execution_time_sec', '-')}"
         )
 
-        if callable(set_status_message):
-            set_status_message("Corrida creada correctamente")
-
+        self._set_status_message("Corrida creada correctamente")
         if self.on_refresh_historial:
             self.on_refresh_historial()
 
         self._reset_form_fields()
-        self._set_form_enabled(True)
+        self._set_idle_state()
 
+        abrir_detalle = self._show_success_dialog()
+        if abrir_detalle and corrida_id and self.on_open_detail:
+            self.on_open_detail(corrida_id)
+
+    def _show_success_dialog(self) -> bool:
         msg = QMessageBox(self)
         msg.setIcon(QMessageBox.Icon.Information)
         msg.setWindowTitle("Éxito")
         msg.setText("Corrida creada correctamente.")
+
         abrir_btn = msg.addButton(
             "Abrir detalle",
             QMessageBox.ButtonRole.AcceptRole,
@@ -319,21 +335,15 @@ class NuevaCorridaPage(QWidget):
         )
         msg.exec()
 
-        if msg.clickedButton() == abrir_btn and corrida_id and self.on_open_detail:
-            self.on_open_detail(corrida_id)
+        return msg.clickedButton() == abrir_btn
 
     def _on_corrida_error(self, error_message: str) -> None:
-        parent_window = self.window()
-        set_status_message = getattr(parent_window, "set_status_message", None)
-
         self.resultado_label.setText(
             "Estado actual: error.\n"
             "La corrida no pudo completarse."
         )
-        self._set_form_enabled(True)
-
-        if callable(set_status_message):
-            set_status_message("Error al crear corrida", 6000)
+        self._set_idle_state()
+        self._set_status_message("Error al crear corrida", 6000)
 
         QMessageBox.critical(
             self,
@@ -349,3 +359,6 @@ class NuevaCorridaPage(QWidget):
         if self.worker_thread is not None:
             self.worker_thread.deleteLater()
             self.worker_thread = None
+
+    def _has_running_worker(self) -> bool:
+        return self.worker_thread is not None and self.worker_thread.isRunning()

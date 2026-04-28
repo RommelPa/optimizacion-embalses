@@ -69,13 +69,6 @@ def ejecutar_optimizacion_pso(
         "w": float(w),
     }
 
-    print(
-        "PSO options reales:",
-        options,
-        "velocity_clamp=",
-        (-float(v_max), float(v_max)),
-    )
-
     optimizador = ps.single.GlobalBestPSO(
         n_particles=n_particles,
         dimensions=horas,

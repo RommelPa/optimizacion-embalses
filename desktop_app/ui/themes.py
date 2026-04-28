@@ -150,6 +150,34 @@ def get_dark_stylesheet() -> str:
         border-radius: 4px;
         padding: 10px;
     }
+    
+    QTabWidget::pane {
+    border: 1px solid #2f4f7f;
+    background: #111827;
+    top: -1px;
+    }
+
+    QTabBar::tab {
+        background: #1b2430;
+        color: #dbe7ff;
+        border: 1px solid #2f4f7f;
+        padding: 8px 14px;
+        min-width: 90px;
+        border-top-left-radius: 6px;
+        border-top-right-radius: 6px;
+        margin-right: 2px;
+    }
+
+    QTabBar::tab:selected {
+        background: #0f172a;
+        color: #ffffff;
+        font-weight: 600;
+        border-bottom-color: #0f172a;
+    }
+
+    QTabBar::tab:hover:!selected {
+        background: #23324a;
+    }
     """
 
 
@@ -304,5 +332,34 @@ def get_light_stylesheet() -> str:
         border: 1px solid #D6DDE8;
         border-radius: 4px;
         padding: 10px;
+    }
+
+    QTabWidget::pane {
+    border: 1px solid #c7cfdb;
+    background: #ffffff;
+    top: -1px;
+    }
+
+    QTabBar::tab {
+        background: #e9edf3;
+        color: #1f3b64;
+        border: 1px solid #c7cfdb;
+        padding: 8px 14px;
+        min-width: 90px;
+        border-top-left-radius: 6px;
+        border-top-right-radius: 6px;
+        margin-right: 2px;
+    }
+
+    QTabBar::tab:selected {
+        background: #ffffff;
+        color: #123e7c;
+        font-weight: 600;
+        border-bottom-color: #ffffff;
+    }
+
+    QTabBar::tab:hover:!selected {
+        background: #dfe6ef;
+        color: #123e7c;
     }
     """

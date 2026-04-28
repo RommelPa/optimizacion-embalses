@@ -19,6 +19,7 @@ from app.repositories.corrida_repository import CorridaRepository
 from app.application.utils import serialize_datetime_utc
 from app.application.excel_exporter import build_excel_corrida_legacy
 from app.application.configuracion_service import ConfiguracionService
+from app.application.corrida_resultados_builder import build_resultados_dataset
 
 class CorridaService:
     def __init__(self, db: Session) -> None:
@@ -256,6 +257,8 @@ class CorridaService:
         if not row:
             raise CorridaNotFoundError("Corrida no encontrada")
 
+        resultados_dataset = build_resultados_dataset(row)
+
         return {
             "id": row.id,
             "caso_estudio": row.caso_estudio,
@@ -303,6 +306,7 @@ class CorridaService:
                 "q_rango_min": row.cfg_q_rango_min,
                 "q_rango_max": row.cfg_q_rango_max,
             },
+            "resultados_dataset": resultados_dataset,
         }
     
     def exportar_corrida_excel(self, corrida_id: str) -> tuple[bytes, str]:

@@ -18,7 +18,7 @@ from PySide6.QtWidgets import (
 )
 
 from ui.pages.configuracion_page import ConfiguracionPage
-from ui.pages.detalle_corrida_page import DetalleCorridaPage
+from ui.pages.detalle_corrida import DetalleCorridaPage
 from ui.pages.historial_page import HistorialPage
 from ui.pages.nueva_corrida_page import NuevaCorridaPage
 from ui.themes import get_dark_stylesheet, get_light_stylesheet

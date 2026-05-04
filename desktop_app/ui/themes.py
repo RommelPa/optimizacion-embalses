@@ -1,8 +1,16 @@
 def get_dark_stylesheet() -> str:
     return """
-    QMainWindow, QWidget {
+    QMainWindow, QDialog {
         background-color: #17191D;
         color: #F2F4F8;
+    }
+
+    QWidget {
+        color: #F2F4F8;
+    }
+
+    QScrollArea, QScrollArea > QWidget > QWidget {
+        background-color: #17191D;
     }
 
     QMenuBar {
@@ -28,6 +36,11 @@ def get_dark_stylesheet() -> str:
     QMenu::item:selected {
         background-color: #123E7C;
         color: #FFFFFF;
+    }
+
+    QMessageBox {
+        background-color: #17191D;
+        color: #F2F4F8;
     }
 
     QFrame#ActivityBar {
@@ -73,6 +86,36 @@ def get_dark_stylesheet() -> str:
         border: 1px solid #3A4454;
         border-radius: 4px;
         padding: 4px;
+    }
+
+    QLineEdit:focus, QTextEdit:focus, QDateEdit:focus, QComboBox:focus {
+        border: 1px solid #4C8DFF;
+    }
+
+    QLineEdit[readOnly="true"], QTextEdit[readOnly="true"] {
+        background-color: #262C35;
+        color: #C7D0DB;
+        border: 1px solid #3A4454;
+    }
+
+    QComboBox:disabled, QDateEdit:disabled, QLineEdit:disabled, QTextEdit:disabled {
+        background-color: #2A2F38;
+        color: #7E8794;
+        border: 1px solid #3A4454;
+    }
+
+    QComboBox::drop-down {
+        border: none;
+        width: 22px;
+    }
+
+    QCheckBox {
+        spacing: 8px;
+        color: #F2F4F8;
+    }
+
+    QCheckBox:disabled {
+        color: #7E8794;
     }
 
     QTableWidget {
@@ -150,17 +193,23 @@ def get_dark_stylesheet() -> str:
         border-radius: 4px;
         padding: 10px;
     }
-    
+
+    QLabel#LoginErrorLabel {
+        color: #FF8E8E;
+        font-weight: 600;
+        padding-top: 2px;
+    }
+
     QTabWidget::pane {
-    border: 1px solid #2f4f7f;
-    background: #111827;
-    top: -1px;
+        border: 1px solid #2F4F7F;
+        background: #111827;
+        top: -1px;
     }
 
     QTabBar::tab {
-        background: #1b2430;
-        color: #dbe7ff;
-        border: 1px solid #2f4f7f;
+        background: #1B2430;
+        color: #DBE7FF;
+        border: 1px solid #2F4F7F;
         padding: 8px 14px;
         min-width: 90px;
         border-top-left-radius: 6px;
@@ -169,23 +218,31 @@ def get_dark_stylesheet() -> str:
     }
 
     QTabBar::tab:selected {
-        background: #0f172a;
-        color: #ffffff;
+        background: #0F172A;
+        color: #FFFFFF;
         font-weight: 600;
-        border-bottom-color: #0f172a;
+        border-bottom-color: #0F172A;
     }
 
     QTabBar::tab:hover:!selected {
-        background: #23324a;
+        background: #23324A;
     }
     """
 
 
 def get_light_stylesheet() -> str:
     return """
-    QMainWindow, QWidget {
+    QMainWindow, QDialog {
         background-color: #F6F8FB;
         color: #1C2430;
+    }
+
+    QWidget {
+        color: #1C2430;
+    }
+
+    QScrollArea, QScrollArea > QWidget > QWidget {
+        background-color: #F6F8FB;
     }
 
     QMenuBar {
@@ -211,6 +268,11 @@ def get_light_stylesheet() -> str:
     QMenu::item:selected {
         background-color: #DCE8FB;
         color: #123E7C;
+    }
+
+    QMessageBox {
+        background-color: #F6F8FB;
+        color: #1C2430;
     }
 
     QFrame#ActivityBar {
@@ -256,6 +318,36 @@ def get_light_stylesheet() -> str:
         border: 1px solid #C7D1DE;
         border-radius: 4px;
         padding: 4px;
+    }
+
+    QLineEdit:focus, QTextEdit:focus, QDateEdit:focus, QComboBox:focus {
+        border: 1px solid #4C8DFF;
+    }
+
+    QLineEdit[readOnly="true"], QTextEdit[readOnly="true"] {
+        background-color: #F1F4F8;
+        color: #5E6B7A;
+        border: 1px solid #D6DDE8;
+    }
+
+    QComboBox:disabled, QDateEdit:disabled, QLineEdit:disabled, QTextEdit:disabled {
+        background-color: #EEF1F5;
+        color: #8A94A3;
+        border: 1px solid #D6DDE8;
+    }
+
+    QComboBox::drop-down {
+        border: none;
+        width: 22px;
+    }
+
+    QCheckBox {
+        spacing: 8px;
+        color: #1C2430;
+    }
+
+    QCheckBox:disabled {
+        color: #8A94A3;
     }
 
     QTableWidget {
@@ -334,16 +426,22 @@ def get_light_stylesheet() -> str:
         padding: 10px;
     }
 
+    QLabel#LoginErrorLabel {
+        color: #C23B3B;
+        font-weight: 600;
+        padding-top: 2px;
+    }
+
     QTabWidget::pane {
-    border: 1px solid #c7cfdb;
-    background: #ffffff;
-    top: -1px;
+        border: 1px solid #C7CFDB;
+        background: #FFFFFF;
+        top: -1px;
     }
 
     QTabBar::tab {
-        background: #e9edf3;
-        color: #1f3b64;
-        border: 1px solid #c7cfdb;
+        background: #E9EDF3;
+        color: #1F3B64;
+        border: 1px solid #C7CFDB;
         padding: 8px 14px;
         min-width: 90px;
         border-top-left-radius: 6px;
@@ -352,14 +450,14 @@ def get_light_stylesheet() -> str:
     }
 
     QTabBar::tab:selected {
-        background: #ffffff;
-        color: #123e7c;
+        background: #FFFFFF;
+        color: #123E7C;
         font-weight: 600;
-        border-bottom-color: #ffffff;
+        border-bottom-color: #FFFFFF;
     }
 
     QTabBar::tab:hover:!selected {
-        background: #dfe6ef;
-        color: #123e7c;
+        background: #DFE6EF;
+        color: #123E7C;
     }
     """

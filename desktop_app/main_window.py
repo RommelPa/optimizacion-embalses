@@ -21,6 +21,7 @@ from ui.pages.configuracion_page import ConfiguracionPage
 from ui.pages.detalle_corrida import DetalleCorridaPage
 from ui.pages.historial_page import HistorialPage
 from ui.pages.nueva_corrida_page import NuevaCorridaPage
+from ui.pages.usuarios_page import UsuariosPage
 from ui.themes import get_dark_stylesheet, get_light_stylesheet
 
 
@@ -29,15 +30,18 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.user_session = user_session
         self.logout_requested = False
-        self.setWindowTitle("Optimización Embalses - Escritorio")
-        self.resize(1280, 800)
 
         self.page_nueva_corrida = 0
         self.page_historial = 1
         self.page_detalle = 2
         self.page_configuracion = 3
+        self.page_usuarios = 4
 
         self.nav_buttons: dict[str, QToolButton] = {}
+        self.usuarios_page: UsuariosPage | None = None
+
+        self.setWindowTitle("Optimización Embalses - Escritorio")
+        self.resize(1280, 800)
 
         self._build_actions()
         self._build_ui()
@@ -52,6 +56,9 @@ class MainWindow(QMainWindow):
             5000,
         )
 
+    def _is_ingeniero(self) -> bool:
+        return str(self.user_session.rol).strip().lower() == "ingeniero"
+
     def _build_actions(self) -> None:
         self.action_nueva_corrida = QAction("Nueva corrida", self)
         self.action_nueva_corrida.triggered.connect(self.show_nueva_corrida_page)
@@ -64,6 +71,9 @@ class MainWindow(QMainWindow):
 
         self.action_configuracion = QAction("Configuración", self)
         self.action_configuracion.triggered.connect(self.show_configuracion_page)
+
+        self.action_usuarios = QAction("Usuarios", self)
+        self.action_usuarios.triggered.connect(self.show_usuarios_page)
 
         self.action_tema_claro = QAction("Modo claro", self)
         self.action_tema_claro.triggered.connect(self.apply_light_theme)
@@ -137,6 +147,11 @@ class MainWindow(QMainWindow):
             icon=self.style().standardIcon(QStyle.StandardPixmap.SP_FileDialogContentsView),
             callback=self.show_detalle_page,
         )
+        self.btn_nav_usuarios = self._create_nav_button(
+            tooltip="Usuarios",
+            icon=self.style().standardIcon(QStyle.StandardPixmap.SP_DirHomeIcon),
+            callback=self.show_usuarios_page,
+        )
         self.btn_nav_config = self._create_nav_button(
             tooltip="Configuración",
             icon=self.style().standardIcon(QStyle.StandardPixmap.SP_MessageBoxInformation),
@@ -161,10 +176,15 @@ class MainWindow(QMainWindow):
             "detalle": self.btn_nav_detalle,
             "configuracion": self.btn_nav_config,
         }
+        if self._is_ingeniero():
+            self.nav_buttons["usuarios"] = self.btn_nav_usuarios
 
         top_layout.addWidget(self.btn_nav_nueva)
         top_layout.addWidget(self.btn_nav_historial)
         top_layout.addWidget(self.btn_nav_detalle)
+
+        if self._is_ingeniero():
+            bottom_layout.addWidget(self.btn_nav_usuarios)
 
         bottom_layout.addWidget(self.btn_nav_config)
         bottom_layout.addWidget(self.btn_nav_logout)
@@ -208,6 +228,10 @@ class MainWindow(QMainWindow):
         archivo_menu.addAction(self.action_historial)
         archivo_menu.addAction(self.action_detalle)
         archivo_menu.addSeparator()
+
+        if self._is_ingeniero():
+            archivo_menu.addAction(self.action_usuarios)
+
         archivo_menu.addAction(self.action_configuracion)
         archivo_menu.addAction(self.action_cerrar_sesion)
         archivo_menu.addAction(self.action_salir)
@@ -226,6 +250,10 @@ class MainWindow(QMainWindow):
         self.stack.addWidget(self.historial_page)
         self.stack.addWidget(self.detalle_page)
         self.stack.addWidget(self.configuracion_page)
+
+        if self._is_ingeniero():
+            self.usuarios_page = UsuariosPage(self.user_session)
+            self.stack.addWidget(self.usuarios_page)
 
     def _wire_pages(self) -> None:
         self.nueva_corrida_page.set_after_create_callbacks(
@@ -265,6 +293,28 @@ class MainWindow(QMainWindow):
         self.stack.setCurrentIndex(self.page_configuracion)
         self._set_active_nav("configuracion")
         self.set_status_message("Vista: Configuración")
+
+    def show_usuarios_page(self) -> None:
+        if not self._is_ingeniero():
+            QMessageBox.warning(
+                self,
+                "Permisos",
+                "Solo el ingeniero puede administrar usuarios.",
+            )
+            return
+
+        if self.usuarios_page is None:
+            QMessageBox.warning(
+                self,
+                "Usuarios",
+                "La página de usuarios no está disponible.",
+            )
+            return
+
+        self.usuarios_page.load_data()
+        self.stack.setCurrentWidget(self.usuarios_page)
+        self._set_active_nav("usuarios")
+        self.set_status_message("Vista: Usuarios")
 
     def open_detail_page(self, corrida_id: str) -> None:
         try:

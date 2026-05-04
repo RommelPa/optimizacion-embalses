@@ -253,11 +253,13 @@ class ConfiguracionPage(QWidget):
         try:
             data = self.service.obtener_configuracion()
             self._set_payload(data)
-        except Exception as exc:
+        except ValueError as exc:
+            QMessageBox.warning(self, "Configuración", str(exc))
+        except Exception:
             QMessageBox.critical(
                 self,
                 "Error",
-                f"No se pudo cargar la configuración:\n{exc}",
+                "No se pudo cargar la configuración. Intente nuevamente.",
             )
 
     def _save_configuracion(self) -> None:
@@ -284,11 +286,13 @@ class ConfiguracionPage(QWidget):
                 "Éxito",
                 "La configuración fue guardada correctamente.",
             )
-        except Exception as exc:
+        except ValueError as exc:
+            QMessageBox.warning(self, "Configuración", str(exc))
+        except Exception:
             QMessageBox.critical(
                 self,
                 "Error",
-                f"No se pudo guardar la configuración:\n{exc}",
+                "No se pudo guardar la configuración. Intente nuevamente.",
             )
 
     def _restore_defaults(self) -> None:
@@ -324,9 +328,11 @@ class ConfiguracionPage(QWidget):
                 "Éxito",
                 "La configuración fue restaurada a sus valores por defecto.",
             )
-        except Exception as exc:
+        except ValueError as exc:
+            QMessageBox.warning(self, "Configuración", str(exc))
+        except Exception:
             QMessageBox.critical(
                 self,
                 "Error",
-                f"No se pudo restaurar la configuración:\n{exc}",
+                "No se pudo restaurar la configuración. Intente nuevamente.",
             )

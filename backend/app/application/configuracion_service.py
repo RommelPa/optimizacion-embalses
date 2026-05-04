@@ -70,11 +70,35 @@ class ConfiguracionService:
         return self._to_dict(row)
 
     def _validar(self, payload: ConfiguracionGlobalInput) -> None:
+        if payload.c1 <= 0:
+            raise ValueError("c1 debe ser mayor que 0")
+
+        if payload.c2 <= 0:
+            raise ValueError("c2 debe ser mayor que 0")
+
+        if payload.w <= 0:
+            raise ValueError("w debe ser mayor que 0")
+
+        if payload.v_max <= 0:
+            raise ValueError("v_max debe ser mayor que 0")
+
         if payload.n_particles < 1:
             raise ValueError("n_particles debe ser mayor o igual a 1")
 
         if payload.max_iter < 1:
             raise ValueError("max_iter debe ser mayor o igual a 1")
+
+        if payload.rendimiento_ch4 <= 0:
+            raise ValueError("rendimiento_ch4 debe ser mayor que 0")
+
+        if payload.rendimiento_ch6 <= 0:
+            raise ValueError("rendimiento_ch6 debe ser mayor que 0")
+
+        if payload.v_inicio_factor <= 0:
+            raise ValueError("v_inicio_factor debe ser mayor que 0")
+
+        if payload.v_final_factor <= 0:
+            raise ValueError("v_final_factor debe ser mayor que 0")
 
         if payload.v_cincel_min >= payload.v_cincel_max:
             raise ValueError("v_cincel_min debe ser menor que v_cincel_max")
@@ -106,7 +130,7 @@ class ConfiguracionService:
             "q_rango_max": row.q_rango_max,
             "updated_at": row.updated_at.isoformat() if row.updated_at else None,
         }
-    
+
     def _default_values(self) -> dict:
         return {
             "c1": 2.0,

@@ -1,12 +1,11 @@
 from __future__ import annotations
 
-import hashlib
-import hmac
-import os
 from dataclasses import dataclass
+from datetime import datetime, timedelta, timezone
 
 from sqlalchemy.orm import Session
 
+from app.application.password_service import PasswordService
 from app.models.usuario import Usuario
 from app.repositories.usuario_repository import UsuarioRepository
 
@@ -19,9 +18,13 @@ class UsuarioSesion:
 
 
 class AuthService:
+    MAX_INTENTOS_FALLIDOS = 5
+    BLOQUEO_MINUTOS = 10
+
     def __init__(self, db: Session) -> None:
         self.db = db
         self.repo = UsuarioRepository(db)
+        self.password_service = PasswordService()
 
     def autenticar(self, username: str, password: str) -> UsuarioSesion:
         username = username.strip()
@@ -35,8 +38,20 @@ class AuthService:
         if not usuario.activo:
             raise ValueError("El usuario está inactivo.")
 
-        if not self._verify_password(password, usuario.password_hash):
+        now = datetime.now(timezone.utc)
+        if usuario.bloqueado_hasta is not None:
+            bloqueado_hasta = self._ensure_utc(usuario.bloqueado_hasta)
+            if bloqueado_hasta > now:
+                raise ValueError("Usuario bloqueado temporalmente. Intente más tarde.")
+
+        if not self.password_service.verify_password(password, usuario.password_hash):
+            self._registrar_intento_fallido(usuario, now)
             raise ValueError("Usuario o contraseña incorrectos.")
+
+        usuario.intentos_fallidos = 0
+        usuario.bloqueado_hasta = None
+        usuario.ultimo_login_at = now
+        self.repo.update(usuario)
 
         return UsuarioSesion(
             id=usuario.id,
@@ -57,39 +72,25 @@ class AuthService:
 
             usuario = Usuario(
                 username=username,
-                password_hash=self._hash_password(password),
+                password_hash=self.password_service.hash_password(password),
                 rol=rol,
                 activo=True,
+                intentos_fallidos=0,
+                bloqueado_hasta=None,
+                ultimo_login_at=None,
             )
             self.repo.add(usuario)
 
-    def _hash_password(self, password: str) -> str:
-        salt = os.urandom(16)
-        iterations = 120_000
-        digest = hashlib.pbkdf2_hmac(
-            "sha256",
-            password.encode("utf-8"),
-            salt,
-            iterations,
-        )
-        return f"pbkdf2_sha256${iterations}${salt.hex()}${digest.hex()}"
+    def _registrar_intento_fallido(self, usuario: Usuario, now: datetime) -> None:
+        usuario.intentos_fallidos += 1
 
-    def _verify_password(self, password: str, stored_hash: str) -> bool:
-        try:
-            algorithm, iterations_str, salt_hex, digest_hex = stored_hash.split("$", 3)
-            if algorithm != "pbkdf2_sha256":
-                return False
+        if usuario.intentos_fallidos >= self.MAX_INTENTOS_FALLIDOS:
+            usuario.bloqueado_hasta = now + timedelta(minutes=self.BLOQUEO_MINUTOS)
+            usuario.intentos_fallidos = 0
 
-            iterations = int(iterations_str)
-            salt = bytes.fromhex(salt_hex)
-            expected_digest = bytes.fromhex(digest_hex)
+        self.repo.update(usuario)
 
-            candidate_digest = hashlib.pbkdf2_hmac(
-                "sha256",
-                password.encode("utf-8"),
-                salt,
-                iterations,
-            )
-            return hmac.compare_digest(candidate_digest, expected_digest)
-        except Exception:
-            return False
+    def _ensure_utc(self, dt: datetime) -> datetime:
+        if dt.tzinfo is None:
+            return dt.replace(tzinfo=timezone.utc)
+        return dt.astimezone(timezone.utc)

@@ -55,7 +55,7 @@ pip install -r requirements.txt
 Desde la raíz del proyecto:
 
 ```bash
-python desktop_app/app.py
+python desktop_app/run_desktop.py
 ```
 
 ## Base de datos local

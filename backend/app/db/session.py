@@ -4,7 +4,23 @@ from pathlib import Path
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-DEFAULT_SQLITE_PATH = Path(__file__).resolve().parents[2] / "corridas.db"
+
+APP_DIR_NAME = "OptimizacionEmbalses"
+
+
+def _get_default_sqlite_path() -> Path:
+    local_appdata = os.getenv("LOCALAPPDATA")
+
+    if local_appdata:
+        base_dir = Path(local_appdata) / APP_DIR_NAME
+    else:
+        base_dir = Path.home() / f".{APP_DIR_NAME.lower()}"
+
+    base_dir.mkdir(parents=True, exist_ok=True)
+    return base_dir / "corridas.db"
+
+
+DEFAULT_SQLITE_PATH = _get_default_sqlite_path()
 DEFAULT_DATABASE_URL = f"sqlite:///{DEFAULT_SQLITE_PATH.as_posix()}"
 
 DATABASE_URL = os.getenv("DATABASE_URL", DEFAULT_DATABASE_URL)

@@ -11,3 +11,4 @@ openpyxl
 pillow
 pyswarms
 python-dotenv
+pyinstaller

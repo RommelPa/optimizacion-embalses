@@ -21,11 +21,13 @@ from ui.pages.detalle_corrida.tabs.resultados_tab import ResultadosTab
 
 
 class DetalleCorridaPage(QWidget):
-    def __init__(self) -> None:
+    def __init__(self, user_session) -> None:
         super().__init__()
+        self.user_session = user_session
         self.service = CorridaLocalService()
         self.current_corrida_id: str | None = None
         self.current_caso_estudio: str | None = None
+        self.current_detail: dict | None = None
         self._build_ui()
 
     def _build_ui(self) -> None:
@@ -57,6 +59,11 @@ class DetalleCorridaPage(QWidget):
         subtitle.setWordWrap(True)
         main_layout.addWidget(subtitle)
 
+        self.caso_base_status_label = QLabel("Esta corrida no es el caso base global.")
+        self.caso_base_status_label.setObjectName("StatusPanel")
+        self.caso_base_status_label.setWordWrap(True)
+        main_layout.addWidget(self.caso_base_status_label)
+
         self.main_tabs = QTabWidget()
         self.resumen_tab = ResumenTab()
         self.resultados_tab = ResultadosTab()
@@ -73,12 +80,20 @@ class DetalleCorridaPage(QWidget):
     def _build_actions(self) -> QHBoxLayout:
         actions = QHBoxLayout()
         actions.setSpacing(10)
-        actions.addStretch()
+
+        self.marcar_caso_base_btn = QPushButton("Marcar como caso base")
+        self.marcar_caso_base_btn.setMinimumHeight(34)
+        self.marcar_caso_base_btn.clicked.connect(self.marcar_como_caso_base)
+
+        rol = getattr(self.user_session, "rol", "").strip().lower()
+        self.marcar_caso_base_btn.setVisible(rol == "ingeniero")
 
         self.export_btn = QPushButton("Exportar Excel")
         self.export_btn.setMinimumHeight(34)
         self.export_btn.clicked.connect(self.export_excel)
 
+        actions.addStretch()
+        actions.addWidget(self.marcar_caso_base_btn)
         actions.addWidget(self.export_btn)
         return actions
 
@@ -86,12 +101,92 @@ class DetalleCorridaPage(QWidget):
         detail = self.service.obtener_corrida(corrida_id)
         self.current_corrida_id = corrida_id
         self.current_caso_estudio = detail.get("caso_estudio", "")
+        self.current_detail = detail
 
         self.resumen_tab.set_detail(detail)
         self.resultados_tab.set_detail(detail)
         self.configuracion_tab.set_configuracion(
             detail.get("configuracion_usada", {}) or {}
         )
+        self._refresh_caso_base_status(detail)
+
+    def _refresh_caso_base_status(self, detail: dict) -> None:
+        es_caso_base = bool(detail.get("es_caso_base", False))
+        estado = str(detail.get("estado", "")).strip().lower()
+
+        if es_caso_base:
+            self.caso_base_status_label.setText(
+                "Esta corrida es el caso base global actual."
+            )
+        else:
+            self.caso_base_status_label.setText(
+                "Esta corrida no es el caso base global."
+            )
+
+        rol = getattr(self.user_session, "rol", "").strip().lower()
+        if rol == "ingeniero":
+            self.marcar_caso_base_btn.setEnabled(
+                estado == "completada" and not es_caso_base
+            )
+
+    def marcar_como_caso_base(self) -> None:
+        if not self.current_corrida_id:
+            QMessageBox.warning(self, "Validación", "No hay corrida cargada.")
+            return
+
+        if self.current_detail is None:
+            QMessageBox.warning(self, "Validación", "No hay detalle cargado.")
+            return
+
+        if self.current_detail.get("es_caso_base", False):
+            QMessageBox.information(
+                self,
+                "Caso base",
+                "La corrida actual ya es el caso base global.",
+            )
+            return
+
+        if str(self.current_detail.get("estado", "")).strip().lower() != "completada":
+            QMessageBox.warning(
+                self,
+                "Caso base",
+                "Solo una corrida completada puede marcarse como caso base.",
+            )
+            return
+
+        reply = QMessageBox.question(
+            self,
+            "Marcar caso base",
+            "¿Deseas marcar esta corrida como caso base global?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+        if reply != QMessageBox.StandardButton.Yes:
+            return
+
+        try:
+            self.service.marcar_como_caso_base(
+                self.current_corrida_id,
+                self.user_session,
+            )
+            self.load_corrida(self.current_corrida_id)
+
+            parent_window = self.window()
+            set_status_message = getattr(parent_window, "set_status_message", None)
+            if callable(set_status_message):
+                set_status_message("Caso base global actualizado")
+
+            QMessageBox.information(
+                self,
+                "Éxito",
+                "La corrida fue marcada como caso base global.",
+            )
+        except Exception as exc:
+            QMessageBox.critical(
+                self,
+                "Error",
+                f"No se pudo marcar la corrida como caso base:\n{exc}",
+            )
 
     def export_excel(self) -> None:
         if not self.current_corrida_id:

@@ -19,6 +19,23 @@ class CrearCorridaInput:
 
 
 @dataclass
+class CrearCorridaManualInput:
+    caso_estudio: str
+    modo_operacion: str
+    fecha_proceso: str
+    escenario: str
+    origen_datos: str
+    usuario_id: int
+    usuario_username: str
+    usuario_rol: str
+    q_salida_campanario: float
+    cmg: list[float]
+    p_char_5: list[float]
+    observaciones: Optional[str] = None
+    corrida_base_id: Optional[str] = None
+
+
+@dataclass
 class ConfiguracionGlobalInput:
     c1: float
     c2: float

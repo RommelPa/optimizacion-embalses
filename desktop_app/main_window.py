@@ -23,7 +23,7 @@ from ui.pages.historial_page import HistorialPage
 from ui.pages.nueva_corrida_page import NuevaCorridaPage
 from ui.pages.usuarios_page import UsuariosPage
 from ui.themes import get_dark_stylesheet, get_light_stylesheet
-
+from ui.pages.nueva_corrida_manual_page import NuevaCorridaManualPage
 
 class MainWindow(QMainWindow):
     def __init__(self, user_session) -> None:
@@ -32,10 +32,11 @@ class MainWindow(QMainWindow):
         self.logout_requested = False
 
         self.page_nueva_corrida = 0
-        self.page_historial = 1
-        self.page_detalle = 2
-        self.page_configuracion = 3
-        self.page_usuarios = 4
+        self.page_nueva_corrida_manual = 1
+        self.page_historial = 2
+        self.page_detalle = 3
+        self.page_configuracion = 4
+        self.page_usuarios = 5
 
         self.nav_buttons: dict[str, QToolButton] = {}
         self.usuarios_page: UsuariosPage | None = None
@@ -60,6 +61,9 @@ class MainWindow(QMainWindow):
         return str(self.user_session.rol).strip().lower() == "ingeniero"
 
     def _build_actions(self) -> None:
+        self.action_nueva_corrida_manual = QAction("Nueva corrida manual", self)
+        self.action_nueva_corrida_manual.triggered.connect(self.show_nueva_corrida_manual_page)
+
         self.action_nueva_corrida = QAction("Nueva corrida", self)
         self.action_nueva_corrida.triggered.connect(self.show_nueva_corrida_page)
 
@@ -137,6 +141,11 @@ class MainWindow(QMainWindow):
             icon=self.style().standardIcon(QStyle.StandardPixmap.SP_DialogSaveButton),
             callback=self.show_nueva_corrida_page,
         )
+        self.btn_nav_nueva_manual = self._create_nav_button(
+            tooltip="Nueva corrida manual",
+            icon=self.style().standardIcon(QStyle.StandardPixmap.SP_FileDialogNewFolder),
+            callback=self.show_nueva_corrida_manual_page,
+        )
         self.btn_nav_historial = self._create_nav_button(
             tooltip="Historial",
             icon=self.style().standardIcon(QStyle.StandardPixmap.SP_FileDialogDetailedView),
@@ -172,6 +181,7 @@ class MainWindow(QMainWindow):
 
         self.nav_buttons = {
             "nueva": self.btn_nav_nueva,
+            "nueva_manual": self.btn_nav_nueva_manual,
             "historial": self.btn_nav_historial,
             "detalle": self.btn_nav_detalle,
             "configuracion": self.btn_nav_config,
@@ -180,6 +190,7 @@ class MainWindow(QMainWindow):
             self.nav_buttons["usuarios"] = self.btn_nav_usuarios
 
         top_layout.addWidget(self.btn_nav_nueva)
+        top_layout.addWidget(self.btn_nav_nueva_manual)
         top_layout.addWidget(self.btn_nav_historial)
         top_layout.addWidget(self.btn_nav_detalle)
 
@@ -225,6 +236,7 @@ class MainWindow(QMainWindow):
         menu_tema.addAction(self.action_tema_oscuro)
 
         archivo_menu.addAction(self.action_nueva_corrida)
+        archivo_menu.addAction(self.action_nueva_corrida_manual)
         archivo_menu.addAction(self.action_historial)
         archivo_menu.addAction(self.action_detalle)
         archivo_menu.addSeparator()
@@ -242,11 +254,13 @@ class MainWindow(QMainWindow):
 
     def _build_pages(self) -> None:
         self.nueva_corrida_page = NuevaCorridaPage(self.user_session)
+        self.nueva_corrida_manual_page = NuevaCorridaManualPage(self.user_session)
         self.historial_page = HistorialPage(on_open_detail=self.open_detail_page)
-        self.detalle_page = DetalleCorridaPage()
+        self.detalle_page = DetalleCorridaPage(self.user_session)
         self.configuracion_page = ConfiguracionPage(self.user_session)
 
         self.stack.addWidget(self.nueva_corrida_page)
+        self.stack.addWidget(self.nueva_corrida_manual_page)
         self.stack.addWidget(self.historial_page)
         self.stack.addWidget(self.detalle_page)
         self.stack.addWidget(self.configuracion_page)
@@ -257,6 +271,10 @@ class MainWindow(QMainWindow):
 
     def _wire_pages(self) -> None:
         self.nueva_corrida_page.set_after_create_callbacks(
+            on_refresh_historial=self._refresh_historial_from_create,
+            on_open_detail=self.open_detail_page,
+        )
+        self.nueva_corrida_manual_page.set_after_create_callbacks(
             on_refresh_historial=self._refresh_historial_from_create,
             on_open_detail=self.open_detail_page,
         )
@@ -277,6 +295,12 @@ class MainWindow(QMainWindow):
         self.stack.setCurrentIndex(self.page_nueva_corrida)
         self._set_active_nav("nueva")
         self.set_status_message("Vista: Nueva corrida")
+    
+    def show_nueva_corrida_manual_page(self) -> None:
+        self.nueva_corrida_manual_page._load_caso_base_summary()
+        self.stack.setCurrentIndex(self.page_nueva_corrida_manual)
+        self._set_active_nav("nueva_manual")
+        self.set_status_message("Vista: Nueva corrida manual")
 
     def show_historial_page(self) -> None:
         self.historial_page.load_data()

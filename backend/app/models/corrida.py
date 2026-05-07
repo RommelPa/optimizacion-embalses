@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 
-from sqlalchemy import DateTime, Float, Integer, String, Text
+from sqlalchemy import Boolean, DateTime, Float, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
@@ -47,6 +47,9 @@ class Corrida(Base):
 
     input_payload_json: Mapped[str] = mapped_column(Text, nullable=False, default="{}")
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    es_caso_base: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, index=True)
+    corrida_base_id: Mapped[str | None] = mapped_column(String, nullable=True, index=True)
 
     cfg_c1: Mapped[float] = mapped_column(Float, nullable=False, default=2.0)
     cfg_c2: Mapped[float] = mapped_column(Float, nullable=False, default=2.0)

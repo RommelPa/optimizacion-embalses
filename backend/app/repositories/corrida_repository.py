@@ -13,6 +13,12 @@ class CorridaRepository:
         self.db.add(corrida)
         self.db.commit()
 
+    def update(self, corrida: Corrida) -> Corrida:
+        self.db.add(corrida)
+        self.db.commit()
+        self.db.refresh(corrida)
+        return corrida
+
     def get_by_id(self, corrida_id: str) -> Corrida | None:
         return self.db.query(Corrida).filter(Corrida.id == corrida_id).first()
 
@@ -41,3 +47,28 @@ class CorridaRepository:
             query = query.filter(Corrida.id.contains(id_contains))
 
         return query.order_by(Corrida.created_at.desc()).all()
+
+    def get_current_caso_base(self) -> Corrida | None:
+        return (
+            self.db.query(Corrida)
+            .filter(Corrida.es_caso_base.is_(True))
+            .order_by(Corrida.created_at.desc())
+            .first()
+        )
+
+    def clear_caso_base(self) -> None:
+        current = self.get_current_caso_base()
+        if current is None:
+            return
+
+        current.es_caso_base = False
+        self.db.add(current)
+        self.db.commit()
+
+    def mark_as_caso_base(self, corrida: Corrida) -> Corrida:
+        self.clear_caso_base()
+        corrida.es_caso_base = True
+        self.db.add(corrida)
+        self.db.commit()
+        self.db.refresh(corrida)
+        return corrida
